@@ -1,0 +1,25 @@
+Package: gwplotting
+Title: Utilities for plotting statistics from genome-wide analyses
+Version: 1.0.1
+Authors@R: person("Nicholas", "VanKuren", email = "nwvankuren@gmail.com",
+    role = c("aut", "cre"))
+Description: 
+    This package is designed to read in the results of common analyses 
+    of genome-wide diversity, divergence, and association and plot them. It 
+    contains functions to read in the results files from a variety of sources 
+    and analyses, to reorder the results according to chromosomes or scaffold 
+    lengths, and to plot those results.
+Depends: 
+    R (>= 3.5),
+    ggplot2 (>= 3.0.0),
+    dplyr (>= 0.7.8)
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    readr (>= 1.1.1),
+    tibble (>= 1.4.2),
+    stringr (>= 1.3.1),
+    tidyselect (>= 0.2.4),
+    purrr (>= 0.3.0)
+RoxygenNote: 6.1.1
