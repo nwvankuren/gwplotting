@@ -11,15 +11,15 @@ Description:
     lengths, and to plot those results.
 Depends: 
     R (>= 3.5),
-    ggplot2 (>= 3.0.0),
-    dplyr (>= 0.7.8)
+    ggplot2,
+    dplyr
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
-    readr (>= 1.1.1),
-    tibble (>= 1.4.2),
-    stringr (>= 1.3.1),
-    tidyselect (>= 0.2.4),
-    purrr (>= 0.3.0)
+    readr,
+    tibble,
+    stringr,
+    tidyselect,
+    purrr
 RoxygenNote: 6.1.1
