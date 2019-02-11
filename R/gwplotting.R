@@ -6,13 +6,13 @@
 #' lengths
 #' -Plotting common statistics
 #'
-#' @section Required Packages
+#' @section Required Packages:
 #'
 #' This package utilizes a variety of functions from Hadley Wickham's tidyverse
 #' package. Update your R and RStudio to the latest versions, then install the
 #' latest version of tidyverse.
 #'
-#' @section Common Format
+#' @section Common Format:
 #'
 #' I have tried to make each loading function return a standard format tibble,
 #' containing four columns with the following headers:
@@ -24,7 +24,7 @@
 #'          scaffold for most of the load functions, but is replaced when doing
 #'          the actual reordering)
 #'
-#' @section Loading Functions
+#' @section Loading Functions:
 #'
 #' As of Feb 2019, I have written in the following loading functions. Except
 #' where noted, they output the Common Format described above. See their help
@@ -35,7 +35,7 @@
 #' load_plink_gwas
 #' load_abbababa
 #'
-#' @section Reordering Functions
+#' @section Reordering Functions:
 #'
 #' There are two ways I usually reorder scaffolds: by length or by assignments
 #' to another species' chromosomes. See these function help messages for more
@@ -45,7 +45,7 @@
 #' reorder_by_scaf_len
 #' get_cumulative_positions
 #'
-#' @section Plotting Functions
+#' @section Plotting Functions:
 #'
 #' There is one main function, but I will add as I go. This function wraps in
 #' get_cumulative_positions before plotting.
@@ -53,7 +53,7 @@
 #' plot_genomewide_data
 #' plot_region_data
 #'
-#' @section Linkage Disequilibrium Functions
+#' @section Linkage Disequilibrium Functions:
 #'
 #' There are various things that you can do with LD measurements.
 #'
@@ -61,7 +61,7 @@
 #' calculate_ld_decay
 #' calculate_windowed_ld
 #'
-#' @section Example
+#' @section Example:
 #'
 #' x <- load_gemma_gwas( 'file.assoc.txt.gz', pval = 'p_wald' )
 #' y <- reorder_by_scaf_len( x, 'scaffolds.chromSizes' )
