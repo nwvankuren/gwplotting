@@ -4,13 +4,15 @@
 \alias{reorder_scaffolds}
 \title{Reorder scaffolds based on assignment to chromosomes.}
 \usage{
-reorder_scaffolds(input, assignments)
+reorder_scaffolds(input, assignments, species)
 }
 \arguments{
 \item{input}{A three-column tibble containing (at minimum) scaffold, ps, and
 stat as the first three columns.}
 
 \item{assignments}{Name of the file containing the reordering information.}
+
+\item{species}{The abbreviation for the species assembly you ordered to.}
 }
 \value{
 Returns the input tibble with a new column, chr, detailing which
@@ -21,11 +23,28 @@ Returns the input tibble with a new column, chr, detailing which
 This function will reorder the results of a genome-wide statistical
 analysis based on the contents of a file that assigns each scaffold to a
 reference genome assembly. The assignments can be generated using, e.g.
-OrderScaffoldsByBlatingProteins.pl, but must be in the following format:
-}
-\details{
-The scaffold_info file can be generated using UCSCtools' faToTwoBit and
-twoBitInfo.
+OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr
+scaf, scafLen, chr, strand, median_pos \cr
+where scaf is scaffold name, scafLen is the scaffold length, chr is the
+chromosome assignment, strand is the direction of the scaffold relative to
+the chromosome, and median pos is the position of the scaffold along the
+chromosome. This last bit is used to relatively order the scaffolds and must
+be increasing along the chromosome length. \cr
+\cr
+The main difficulty is handling the variety of different species' chromosome
+level assemblies. Some, like \emph{Melitaea cinxia} and
+\emph{Papilio xuthus} follow the convention of "chr1", etc. Others, however,
+like the Heliconius genomes, haven't specified complete chromosomes and have
+a unique naming system, typically e.g. Hmel201003o. These need to be handled
+differently. I can only guarantee that reordering information from the
+following genomes can currently be handled:\cr
+\emph{Heliconius melpomene} v2.5 (hmel)\cr
+\emph{H. erato demophoon} v1.0 (herd)\cr
+\emph{Bombyx mori} chromosome (bmor)\cr
+\emph{Papilio xuthus} chromosome (pxut)\cr
+\emph{Melitaea cinxia} (mcin)\cr
+The appropriate abbreviation should be supplied to the "species" argument
+to the reordering function.
 }
 \examples{
 a1 <- system.file("extdata", "test.gemma_gwas.txt.gz",
@@ -35,6 +54,6 @@ a2 <- system.file("extdata", "test.reordering.txt.gz",
                   package = "gwplotting")
 
 b <- load_gemma_gwas( a1, pval = 'p_wald' )
-b <- reorder_scaffolds( b, a2 )
+b <- reorder_scaffolds( input = b, assignments = a2, species = 'pxut' )
 b
 }

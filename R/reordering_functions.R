@@ -3,14 +3,33 @@
 #' This function will reorder the results of a genome-wide statistical
 #' analysis based on the contents of a file that assigns each scaffold to a
 #' reference genome assembly. The assignments can be generated using, e.g.
-#' OrderScaffoldsByBlatingProteins.pl, but must be in the following format:
-#'
-#' The scaffold_info file can be generated using UCSCtools' faToTwoBit and
-#' twoBitInfo.
+#' OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr
+#' scaf, scafLen, chr, strand, median_pos \cr
+#' where scaf is scaffold name, scafLen is the scaffold length, chr is the
+#' chromosome assignment, strand is the direction of the scaffold relative to
+#' the chromosome, and median pos is the position of the scaffold along the
+#' chromosome. This last bit is used to relatively order the scaffolds and must
+#' be increasing along the chromosome length. \cr
+#' \cr
+#' The main difficulty is handling the variety of different species' chromosome
+#' level assemblies. Some, like \emph{Melitaea cinxia} and
+#' \emph{Papilio xuthus} follow the convention of "chr1", etc. Others, however,
+#' like the Heliconius genomes, haven't specified complete chromosomes and have
+#' a unique naming system, typically e.g. Hmel201003o. These need to be handled
+#' differently. I can only guarantee that reordering information from the
+#' following genomes can currently be handled:\cr
+#' \emph{Heliconius melpomene} v2.5 (hmel)\cr
+#' \emph{H. erato demophoon} v1.0 (herd)\cr
+#' \emph{Bombyx mori} chromosome (bmor)\cr
+#' \emph{Papilio xuthus} chromosome (pxut)\cr
+#' \emph{Melitaea cinxia} (mcin)\cr
+#' The appropriate abbreviation should be supplied to the "species" argument
+#' to the reordering function.
 #'
 #' @param input A three-column tibble containing (at minimum) scaffold, ps, and
 #'     stat as the first three columns.
 #' @param assignments Name of the file containing the reordering information.
+#' @param species The abbreviation for the species assembly you ordered to.
 #'
 #' @return Returns the input tibble with a new column, chr, detailing which
 #'     reference genome chromosomes the draft genome scaffolds map to. Only
@@ -25,9 +44,23 @@
 #'                   package = "gwplotting")
 #'
 #' b <- load_gemma_gwas( a1, pval = 'p_wald' )
-#' b <- reorder_scaffolds( b, a2 )
+#' b <- reorder_scaffolds( input = b, assignments = a2, species = 'pxut' )
 #' b
-reorder_scaffolds <- function( input , assignments ){
+reorder_scaffolds <- function( input , assignments, species ){
+
+  # Currently handles:
+  # pxut, bmor = chr1
+  # mcin = 1
+  # hmel = Hmel201003o
+  # herd = Herato2001
+
+  chr_species <- c('pxut','bmor','mcin')
+  ok_species <- c('hmel','herd',chr_species)
+
+  if( ! species %in% ok_species ){
+    cat(paste0("I can't yet handle your specified species ",species))
+    stop(paste0("The only acceptable species are: ",paste(ok_species,sep=",")))
+  }
 
   reordered <- readr::read_table2( assignments , col_names = T  )
   #`#scaf`     scafLen scafMin scafMax chr    chrMin  chrMax strand num_proteins median_pos
@@ -37,21 +70,23 @@ reorder_scaffolds <- function( input , assignments ){
   #3 scaffold580  104787   14511   68652 chr3  8062310 8083970 +                 3
 
   colnames( reordered )[1] <- 'scaf'
+  # Strip platanus scaffold sizes if they're there
+  reordered <- dplyr::mutate( reordered,
+                  scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
 
-  # Strip 'chr' from chromosome names, if they're there. This simplifies -
-  # will plot in numerically increasing chromosome order.
-  if( grepl( "chr", reordered[1,5] ) ){
-    reordered$chr <- as.numeric( unlist( purrr::map( reordered$chr,
-                                         stringr::str_replace, "chr", "")))
+  # Handle the different species -----------------------------------------------
+
+  if( species %in% chr_species ){
+
+    # Strip 'chr' from chromosome names, if they're there. This simplifies -
+    # will plot in numerically increasing chromosome order.
+    if( grepl( "chr", reordered[1,5] ) ){
+      reordered$chr <- as.numeric( unlist( purrr::map( reordered$chr,
+                                          stringr::str_replace, "chr", "")))
+    }
   }
 
-  # Also strip platanus scaffold sizes if they're there
-  reordered <- dplyr::mutate( reordered,
-                 scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
-
-  # Make sure it's in the proper order. If it's numeric, then fine. It should order
-  # properly for Hmel chromosomes, too, because it treats them as strings and the
-  # Hmel genome is, e.g. Hmel201001o and Hmel213001o. Check, though.
+  # Order it. This will order Hmel and Herd scaffolds properly
   reordered <- reordered[ order( reordered$chr, reordered$median_pos ), ]
 
   # Keep only those SNPs on reordered scaffolds
@@ -77,6 +112,7 @@ reorder_scaffolds <- function( input , assignments ){
 
   }
 
+
   # Actually do the reordering - by chrom then by position. Add a new column to
   # input that tells you which reference scaffold / chromosome the scaffolds
   # match
@@ -93,6 +129,19 @@ reorder_scaffolds <- function( input , assignments ){
                          input$ps ), ]
 
   input <- dplyr::select( input, -mpos )
+
+  # Parse down to chromosomes for special species. For some reason str_sub won't
+  # return numerics, so you need to replace first
+  if( species == 'hmel' ){
+    input <- input %>% filter( ! grepl('Hmel200', chr)) %>%
+      dplyr::mutate( chr = stringr::str_replace(chr, "Hmel2","") ) %>%
+      dplyr::mutate( chr = as.numeric( stringr::str_sub( chr, 1,2 )))
+
+  } else if( species == 'herd' ){
+    # make a temporary chr_scaf column for sorting
+    input <- input %>% dplyr::mutate( chr = stringr::str_replace(chr, "Herato","") ) %>%
+      dplyr::mutate( chr = as.numeric( stringr::str_sub( chr, 1,2 )))
+  }
 
   return( input )
 
