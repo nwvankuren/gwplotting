@@ -261,7 +261,7 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
     dplyr::mutate( bp_cum = ps + cum_sum + buffer * (chr - 1 ))
 
 
-  input <- dplyr::select( input, scaf, ps, stat, chr, bp_cum )
+  input <- dplyr::select( input, -cum_sum, -len )
 
   return( input )
 
