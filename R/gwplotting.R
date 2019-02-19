@@ -30,10 +30,11 @@
 #' where noted, they output the Common Format described above. See their help
 #' messages for more detail. The function names are fairly explanatory.
 #'
-#' load_gemma_gwas
-#' load_vcftools_stats
-#' load_plink_gwas
-#' load_abbababa
+#' load_gemma_gwas          - GEMMA GWAS output
+#' load_vcftools_stats      - Common statistics output by VCFtools
+#' load_plink_gwas          - PLINK GWAS output
+#' load_abbababa            - Simon Martin's ABBABABAwindows.py output
+#' load_pgw                 - Simon Martin's popgenWindows.py output
 #'
 #' @section Reordering Functions:
 #'
@@ -41,25 +42,25 @@
 #' to another species' chromosomes. See these function help messages for more
 #' details.
 #'
-#' reorder_scaffolds
-#' reorder_by_scaf_len
-#' get_cumulative_positions
+#' reorder_scaffolds        - Reorder by assignment to chromosomes
+#' reorder_by_scaf_len      - Reorder by scaffold lengths (longest - shortest)
+#' get_cumulative_positions - Give each site a cumulative position
 #'
 #' @section Plotting Functions:
 #'
 #' There is one main function, but I will add as I go. This function wraps in
 #' get_cumulative_positions before plotting.
 #'
-#' plot_genomewide_data
-#' plot_region_data
+#' plot_genomewide_data     - Plot all scaffolds / chromosomes
+#' plot_region_data         - Plot a specific scaffold / chromosome or part
 #'
 #' @section Linkage Disequilibrium Functions:
 #'
 #' There are various things that you can do with LD measurements.
 #'
-#' load_plink_ld
-#' calculate_ld_decay
-#' calculate_windowed_ld
+#' load_plink_ld            - Pairwise LD output from PLINK
+#' calculate_ld_decay       - For general patterns of LD decay
+#' calculate_windowed_ld    - For patterns of LD on small scales
 #'
 #' @section Example:
 #'
