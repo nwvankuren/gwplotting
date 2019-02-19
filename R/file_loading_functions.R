@@ -268,3 +268,56 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
   return( tf )
 
 }
+
+#' Load a results file from Simon Martin's popgenWindows.py script.
+#'
+#' This function was developed strictly following his GitHub description of the
+#' output file. The columns in this output file will vary depending on how many
+#' populations you specify. It is up to you to determine what are the necessary
+#' columns to keep. Minimally, the output from that script is: scaffold, start,
+#' end, mid, sites, pi_popA, pi_popB, dxy_popA_popB, Fst_popA_popB. But you may
+#' have all the pairwise comparisons for each specified populations. This
+#' function will return all of the statistic columns.
+#'
+#' @param file Input file name
+#' @param position Use the start, end, or midpoint as the position?
+#' @param min_sites Minimum number of sites required for window inclusion.
+#'
+#' @return A tibble.
+#' @export
+#'
+#' @examples
+#' a <- system.file("extdata", "test.popgen.csv.gz",
+#'                  package = "gwplotting")
+#' b <- load_pgw( a )
+#' b
+load_pgw <- function( file, position = 'midpoint',
+                           min_sites = 0 ){
+
+  tf <- readr::read_csv( file, col_names = T )
+  tf <- dplyr::mutate( tf, scaffold = stringr::str_replace( scaffold, "[|]size[:digit:]*$", "") )
+
+  # Filter out windows with small numbers of sites
+  tf <- dplyr::filter( tf, sites >= min_sites ) %>% dplyr::select( -sites )
+
+  # Position
+  if( position == 'midpoint' ){
+    tf <-dplyr::select( tf, -start, -end )
+  } else if( position == 'start' ){
+    tf <- dplyr::select( tf, scaffold, -end, -mid )
+  } else if( position == 'end' | ! position %in% c('midpoint', 'start', 'end') ){
+    tf <- dplyr::select( tf, -start, -mid )
+  }
+
+  # Standardize column names
+  colnames( tf )[1:2] <- c('scaf','ps')
+
+  # Add a false chr column with a number for each chromosome
+  scaf_order <- tibble::tibble( scaf = rle( tf$scaf )$values ,
+                                num = as.numeric(seq( 1:length(unique( tf$scaf )))))
+
+  tf$chr <- scaf_order$num[ match( tf$scaf, scaf_order$scaf ) ]
+
+  return( tf )
+
+}
