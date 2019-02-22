@@ -126,21 +126,27 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #' @param type Type of statistic. gwas, popgen. gwas will -log10 the stat, while
 #'     popgen will estimate the ylimits.
 #' @param plotting_column Name of the column to plot. Usually will be 'stat'
+#' @param scaffold_lengths Name of a two-column tab delimited file with
+#'     scaffold and length.
 #' @inheritParams ggplot2
 #'
 #' @return A ggplot2 object containing the plot.
 #' @export
 #'
 #' @examples
-#' a <- system.file("extdata", "test.gemma_gwas.txt.gz",
+#' a1 <- system.file("extdata", "test.gemma_gwas.txt.gz",
 #'                  package = "gwplotting")
+#' a2 <- system.file("extdata", "test.chromSizes.txt.gz",
+#'                   package="gwplotting")
 #'
-#' b <- load_gemma_gwas( a, pval = 'p_wald' )
+#' b <- load_gemma_gwas( a1, pval = 'p_wald' )
 #' chrom <- b$chr[ b$scaf == "scaffold_1000" ][1]
-#' c <- plot_region_data( b, chromosome = chrom, type = 'gwas', plotting_column = 'stat')
+#'
+#' c <- plot_region_data( b, chromosome = chrom, type = 'gwas',
+#' plotting_column = 'stat', scaffold_lengths = a2)
 #' c
 plot_region_data <- function( input, chromosome, start, end, type,
-                              plotting_column = 'stat' ){
+                              plotting_column = 'stat', scaffold_lengths ){
 
   # Take care of GWAS ----------------------------------------------------------
   if( type == 'gwas' ){
@@ -179,18 +185,21 @@ plot_region_data <- function( input, chromosome, start, end, type,
     input <- dplyr::filter( input, chr == chromosome )
   }
 
+  # Get cumulative positions ---------------------------------------------------
+  input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
+                                     buffer = 0 )
+
   # Plotting -------------------------------------------------------------------
 
   for_plot <- ggplot2::ggplot( input,
-                ggplot2::aes_string( x = "ps" , y = plotting_column,
-                                     color = '"black"')) +
+                ggplot2::aes_string( x = "bp_cum" , y = plotting_column, fill = '"black"' )) +
 
     # Show all points
-    ggplot2::geom_point( alpha = 0.75 , size = 1 ) +
+    ggplot2::geom_point( alpha = 0.75 , size = 1  ) +
 
     # custom X axis:
     ggplot2::scale_x_continuous( expand = c( 0.005, 0 ),
-                                 name = paste( "chromosome", chromosome, sep = '' )  ) +
+                                 name = paste( "chromosome", chromosome, sep = ' ' )  ) +
     ggplot2:: scale_y_continuous( expand = c( 0.05, 0 ), limits = ylimits ) +
 
     # Customize the theme:
