@@ -50,7 +50,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
    # input <- filter( input, stat <= 0.05 )
     input$stat <- -log10(input$stat)
 
-    ylimits <- c( 0, round(max(input$stat, na.rm = T ) / 5) * 5 )
+    ylimits <- c( 0, ceiling(max(input$stat, na.rm = T ) / 5) * 5 )
 
   } else {
 
