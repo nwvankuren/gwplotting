@@ -107,6 +107,10 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
 
   }
 
+  # Fst correction
+  if( grepl( "FST", stat ) ){
+    tf <- mutate( tf, stat = ifelse( stat < 0, yes = 0, no = stat ))
+  }
 
   # Min sites
   if( 'N_VARIANTS' %in% colnames( tf ) ){
