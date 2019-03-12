@@ -70,7 +70,7 @@ load_gemma_gwas <- function( file, pval = 'p_wald' ){
 load_vcftools_stats <- function( file, stat = 'mean_fst',
                                  position = 'midpoint' ){
   # Correct column name
-  if( stat == 'mean' ){
+  if( stat == 'mean_fst' ){
     stat <- 'MEAN_FST'
   } else if( stat == 'weighted_fst' ){
     stat <- 'WEIGHTED_FST'
@@ -79,7 +79,7 @@ load_vcftools_stats <- function( file, stat = 'mean_fst',
   } else if( stat == 'tajimas_d'){
     stat <- 'TajimaD'
   } else {
-    stop("stat can only take certain values")
+    stop("stat can currently be only: mean_fst, weighted_fst, pi, or tajimas_d")
   }
 
   # Read in table
