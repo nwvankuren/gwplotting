@@ -56,6 +56,7 @@ load_gemma_gwas <- function( file, pval = 'p_wald' ){
 #' @param stat Name of the column to use as statistic. This will be mean_fst,
 #'     weighted_fst, pi, tajimas_d, ...
 #' @param position Coordinate to use as position: start, end, or midpoint
+#' @param min_sites Minimum number of sites required to keep a window.
 #'
 #' @return A three-column tibble containing scaffold, bin position, and
 #'     statistic
@@ -67,7 +68,7 @@ load_gemma_gwas <- function( file, pval = 'p_wald' ){
 #' b <- load_vcftools_stats( a, stat = 'pi' )
 #' b
 #'
-load_vcftools_stats <- function( file, stat = 'mean_fst',
+load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0
                                  position = 'midpoint' ){
   # Correct column name
   if( stat == 'mean_fst' ){
@@ -90,11 +91,10 @@ load_vcftools_stats <- function( file, stat = 'mean_fst',
 
     if( position == "midpoint" ){
       tf <- dplyr::mutate( tf, mp = ((BIN_END + BIN_START) / 2) )
-      tf <- dplyr::select( tf, CHROM, mp, stat )
     } else if( position == "start" ){
-      tf <- dplyr::select( tf, CHROM, BIN_START, stat )
+      tf <- dplyr::mutate( tf, mp = BIN_START )
     } else {
-      tf <- dplyr::select( tf, CHROM, BIN_END, stat )
+      tf <- dplyr::mutate( tf, mp = BIN_END )
     }
 
   } else {
@@ -107,6 +107,13 @@ load_vcftools_stats <- function( file, stat = 'mean_fst',
 
   }
 
+
+  # Min sites
+  if( 'N_VARIANTS' %in% colnames( tf ) ){
+    tf <- dplyr::filter( tf, N_VARIANTS >= min_sites )
+  }
+
+  tf <- dplyr::select(tf, CHROM, mp, stat )
   colnames(tf) <- c( 'scaf', 'ps', 'stat' )
 
   # Add a false chr column with a number for each chromosome, in case you don't
