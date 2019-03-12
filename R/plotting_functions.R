@@ -179,15 +179,21 @@ plot_region_data <- function( input, chromosome, start, end, type,
   }
 
   # Select region of interest --------------------------------------------------
-  if( ! exists( "start" )  ){
+  if( exists( "start" )  ){ # Get just a small region
     input <- dplyr::filter( input, chr == chromosome, ps >= start, ps <= end )
   } else {
     input <- dplyr::filter( input, chr == chromosome )
   }
 
   # Get cumulative positions ---------------------------------------------------
-  input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
-                                     buffer = 0 )
+  if( length( unique( input$scaf ) ) == 1 ){
+    # If there's only one scaffold for this chromosome, obviously
+    # don't need to shift positions
+    input <- mutate( input, bp_cum = ps )
+  } else {
+    input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
+                                       buffer = 0 )
+  }
 
   # Plotting -------------------------------------------------------------------
 
