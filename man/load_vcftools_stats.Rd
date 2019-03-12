@@ -4,13 +4,16 @@
 \alias{load_vcftools_stats}
 \title{Load a VCFtools results file.}
 \usage{
-load_vcftools_stats(file, stat = "mean_fst", position = "midpoint")
+load_vcftools_stats(file, stat = "mean_fst", min_sites = 0,
+  position = "midpoint")
 }
 \arguments{
 \item{file}{VCFtools results file. Can be gzipped.}
 
 \item{stat}{Name of the column to use as statistic. This will be mean_fst,
 weighted_fst, pi, tajimas_d, ...}
+
+\item{min_sites}{Minimum number of sites required to keep a window}
 
 \item{position}{Coordinate to use as position: start, end, or midpoint}
 }

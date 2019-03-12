@@ -56,7 +56,7 @@ load_gemma_gwas <- function( file, pval = 'p_wald' ){
 #' @param stat Name of the column to use as statistic. This will be mean_fst,
 #'     weighted_fst, pi, tajimas_d, ...
 #' @param position Coordinate to use as position: start, end, or midpoint
-#' @param min_sites Minimum number of sites required to keep a window.
+#' @param min_sites Minimum number of sites required to keep a window
 #'
 #' @return A three-column tibble containing scaffold, bin position, and
 #'     statistic
