@@ -107,11 +107,6 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
 
   }
 
-  # Fst correction
-  if( grepl( "FST", stat ) ){
-    tf <- mutate( tf, stat = ifelse( stat < 0, yes = 0, no = stat ))
-  }
-
   # Min sites
   if( 'N_VARIANTS' %in% colnames( tf ) ){
     tf <- dplyr::filter( tf, N_VARIANTS >= min_sites )
@@ -119,6 +114,11 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
 
   tf <- dplyr::select(tf, CHROM, mp, stat )
   colnames(tf) <- c( 'scaf', 'ps', 'stat' )
+
+  #Fst
+  if( grepl( "FST", stat ) ){
+    tf$stat[ tf$stat < 0 ] <- 0
+  }
 
   # Add a false chr column with a number for each chromosome, in case you don't
   # reorder you scaffolds in any way.
