@@ -68,7 +68,7 @@ load_gemma_gwas <- function( file, pval = 'p_wald' ){
 #' b <- load_vcftools_stats( a, stat = 'pi' )
 #' b
 #'
-load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0
+load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
                                  position = 'midpoint' ){
   # Correct column name
   if( stat == 'mean_fst' ){
