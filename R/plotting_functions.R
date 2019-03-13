@@ -121,9 +121,9 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #' @param input A tibble containing
 #' @param chromosome Chromosome to plot. This will be coded in the "chr"
 #'     column of your tibble.
-#' @param start Start position, if desired
-#' @param end End position, if desired
-#' @param type Type of statistic. gwas, popgen. gwas will -log10 the stat, while
+#' @param from Chromosome start position, if desired
+#' @param to Chromosome end position, if desired
+#' @param type Type of statistic: gwas, popgen. gwas will -log10 the stat, while
 #'     popgen will estimate the ylimits.
 #' @param plotting_column Name of the column to plot. Usually will be 'stat'
 #' @param scaffold_lengths Name of a two-column tab delimited file with
@@ -145,7 +145,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #' c <- plot_region_data( b, chromosome = chrom, type = 'gwas',
 #' plotting_column = 'stat', scaffold_lengths = a2)
 #' c
-plot_region_data <- function( input, chromosome, start, end, type,
+plot_region_data <- function( input, chromosome, from = 1, to = NA, type,
                               plotting_column = 'stat', scaffold_lengths ){
 
   # Take care of GWAS ----------------------------------------------------------
@@ -166,10 +166,10 @@ plot_region_data <- function( input, chromosome, start, end, type,
                                           linetype = 'dashed' ))
 
     # Reduce gwas and plot size
-    # input <- filter( input, stat <= 0.05 )
+    input <- filter( input, stat <= 0.05 )
     input$stat <- -log10(input$stat)
 
-    ylimits <- c( 0, round(max(input$stat, na.rm = T ) / 5) * 5 )
+    ylimits <- c( 0, ceiling(max(input$stat, na.rm = T ) / 5) * 5 )
 
   } else {
     sigLines <- NA
@@ -179,8 +179,8 @@ plot_region_data <- function( input, chromosome, start, end, type,
   }
 
   # Select region of interest --------------------------------------------------
-  if( exists( "start" )  ){ # Get just a small region
-    input <- dplyr::filter( input, chr == chromosome, ps >= start, ps <= end )
+  if( ! is.na( to )  ){ # Get just a small region
+    input <- dplyr::filter( input, chr == chromosome, ps >= from, ps <= to )
   } else {
     input <- dplyr::filter( input, chr == chromosome )
   }
