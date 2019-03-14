@@ -3,8 +3,8 @@
 #' This function will reorder the results of a genome-wide statistical
 #' analysis based on the contents of a file that assigns each scaffold to a
 #' reference genome assembly. The assignments can be generated using, e.g.
-#' OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr
-#' scaf, scafLen, chr, strand, median_pos \cr
+#' OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr\cr
+#' scaf, scafLen, chr, strand, median_pos \cr\cr
 #' where scaf is scaffold name, scafLen is the scaffold length, chr is the
 #' chromosome assignment, strand is the direction of the scaffold relative to
 #' the chromosome, and median pos is the position of the scaffold along the
@@ -156,6 +156,7 @@ reorder_scaffolds <- function( input , assignments, species ){
 #'     stat as the first three columns.
 #' @param scaffold_lengths Name of the two-column tab-delimited file containing
 #'     scaffold name and length.
+#' @param min_length Minimum length of scaffolds to keep
 #'
 #' @return A four-column tibble with scaffolds ordered in increasing size.
 #' @export
@@ -170,17 +171,29 @@ reorder_scaffolds <- function( input , assignments, species ){
 #' b <- load_gemma_gwas( a1, pval = 'p_wald' )
 #' c <- reorder_by_scaf_len( b, a2 )
 #' c
-reorder_by_scaf_len <- function( input, scaffold_lengths ){
+reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
 
   # Get the scaffolds and lengths
   lens <- readr::read_table2( scaffold_lengths, col_names = F )
   colnames( lens ) <- c( 'scaf', 'length' )
   lens <- dplyr::mutate( lens,
                   scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", ""))
+
   lens <- lens[ order( lens$length, decreasing = T ) ,]
 
+  #numeric indices
+  lids <- 1:nrow(lens)
+
+  # What index is shortest desired length?
+  cutoff <- min( lids[ lens$length < min_length ] )
+
   # Assign "chromosome" numbers according to size order
-  input$chr <- rownames( lens )[ match( input$scaf, lens$scaf ) ]
+  input$chr <- lids[ match( input$scaf, lens$scaf ) ]
+
+  # Remove too short
+  input <- filter( input, chr < cutoff )
+
+  # Order
   input <- input[ order( as.numeric( input$chr ),
                          as.numeric( input$ps ) ), ]
 

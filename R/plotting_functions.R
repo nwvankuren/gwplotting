@@ -32,12 +32,15 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
   # Take care of GWAS ----------------------------------------------------------
   if( type == 'gwas' ){
 
+    message("--Getting FDR values...\n")
+
     pvals.adj <- p.adjust( input$stat, method = 'fdr' )
     x <- cbind( input$stat, pvals.adj )
     x <- x[ order( x[ , 'pvals.adj'], decreasing = T ), ]
     p10 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.1, ], n = 1 )[1])
     p01 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.01, ], n = 1 )[1])
 
+    cat( paste0("--10% and 1% cutoffs are ",p10," and ",p1,"\n") )
     # Significance lines
     sigLines <- list(ggplot2::geom_hline( ggplot2::aes( yintercept = p10 ),
                                           color = 'blue', alpha = 0.50,
@@ -47,7 +50,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
                                           linetype = 'dashed' ))
 
     # Reduce gwas and plot size
-   # input <- filter( input, stat <= 0.05 )
+    input <- filter( input, stat <= 0.05 )
     input$stat <- -log10(input$stat)
 
     ylimits <- c( 0, ceiling(max(input$stat, na.rm = T ) / 5) * 5 )
