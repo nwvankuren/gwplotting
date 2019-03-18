@@ -40,7 +40,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
     p10 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.1, ], n = 1 )[1])
     p01 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.01, ], n = 1 )[1])
 
-    cat( paste0("--10% and 1% cutoffs are ",p10," and ",p1,"\n") )
+    cat( paste0("--10% and 1% cutoffs are ",p10," and ",p01,"\n") )
     # Significance lines
     sigLines <- list(ggplot2::geom_hline( ggplot2::aes( yintercept = p10 ),
                                           color = 'blue', alpha = 0.50,
@@ -149,33 +149,22 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #' plotting_column = 'stat', scaffold_lengths = a2)
 #' c
 plot_region_data <- function( input, chromosome, from = 1, to = NA, type,
-                              plotting_column = 'stat', scaffold_lengths ){
+                              plotting_column = 'stat', scaffold_lengths,
+                              include_all_p = FALSE ){
 
   # Take care of GWAS ----------------------------------------------------------
   if( type == 'gwas' ){
 
-    pvals.adj <- p.adjust( input$stat, method = 'fdr' )
-    x <- cbind( input$stat, pvals.adj )
-    x <- x[ order( x[ , 'pvals.adj'], decreasing = T ), ]
-    p10 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.1, ], n = 1 )[1])
-    p01 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.01, ], n = 1 )[1])
-
-    # a list with sigLines for plotting
-    sigLines <- list(ggplot2::geom_hline( ggplot2::aes( yintercept = p10 ),
-                                          color = 'blue', alpha = 0.50,
-                                          linetype = 'dashed'),
-                     ggplot2::geom_hline( ggplot2::aes( yintercept = p01 ),
-                                          color = 'red', alpha = 0.50,
-                                          linetype = 'dashed' ))
-
     # Reduce gwas and plot size
-    input <- filter( input, stat <= 0.05 )
+    if( ! include_all_p ){
+      input <- filter( input, stat <= 0.05 )
+    }
+
     input$stat <- -log10(input$stat)
 
     ylimits <- c( 0, ceiling(max(input$stat, na.rm = T ) / 5) * 5 )
 
   } else {
-    sigLines <- NA
     mns <- min( input[,  plotting_column ], na.rm = T )
     mxs <- max( input[, plotting_column ], na.rm = T )
     ylimits <- c( mns - 0.1 * mns, mxs + 0.1 * mxs )
@@ -224,10 +213,6 @@ plot_region_data <- function( input, chromosome, from = 1, to = NA, type,
       #axis.text.x = ggplot2::element_blank(),
       axis.title = ggplot2::element_text( size = 8 )
     )
-
-  if( is.list( sigLines) ){
-    for_plot <- for_plot + sigLines
-  }
 
   return( for_plot )
 
