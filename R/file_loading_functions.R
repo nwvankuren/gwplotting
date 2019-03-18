@@ -103,7 +103,7 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
       warning("No BIN_START in input file, setting position to BIN_END")
     }
 
-    tf <- dplyr::select( tf, CHROM, BIN_END, stat )
+    tf <- dplyr::select( tf, chr, BIN_END, stat )
 
   }
 
@@ -112,7 +112,7 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
     tf <- dplyr::filter( tf, N_VARIANTS >= min_sites )
   }
 
-  tf <- dplyr::select(tf, CHROM, mp, stat )
+  tf <- dplyr::select(tf, chr, mp, stat )
   colnames(tf) <- c( 'scaf', 'ps', 'stat' )
 
   #Fst

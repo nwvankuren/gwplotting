@@ -59,7 +59,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 
     sigLines <- NA
 
-    mns <- min( input[,  plotting_column ], na.rm = T )
+    mns <- min( input[, plotting_column ], na.rm = T )
     mxs <- max( input[, plotting_column ], na.rm = T )
     ylimits <- c( mns - 0.1 * mns, mxs + 0.1 * mxs )
 

@@ -74,6 +74,7 @@ reorder_scaffolds <- function( input , assignments, species ){
   reordered <- dplyr::mutate( reordered,
                   scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
 
+  cat("scaffold names are like so:",reordered[1,1],"\n")
   # Handle the different species -----------------------------------------------
 
   if( species %in% chr_species ){
