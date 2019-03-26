@@ -70,11 +70,13 @@ reorder_scaffolds <- function( input , assignments, species ){
   #3 scaffold580  104787   14511   68652 chr3  8062310 8083970 +                 3
 
   colnames( reordered )[1] <- 'scaf'
+
   # Strip platanus scaffold sizes if they're there
   reordered <- dplyr::mutate( reordered,
-                  scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
+                  scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") ) %>%
+    dplyr::mutate( orichr = paste0(chr,":",chrMin,"-",chrMax,"(",strand,")"))
 
-  cat("scaffold names are like so:",reordered[1,1],"\n")
+  cat("scaffold names are like so:",as.character(reordered[1,1]),"\n")
   # Handle the different species -----------------------------------------------
 
   if( species %in% chr_species ){
@@ -119,6 +121,7 @@ reorder_scaffolds <- function( input , assignments, species ){
   # match
   input$chr <- reordered$chr[ match( input$scaf, reordered$scaf ) ]
   input$mpos <- reordered$median_pos[ match( input$scaf, reordered$scaf ) ]
+  input$orichr <- reordered$orichr[ match( input$scaf, reordered$scaf ) ]
 
   # Sanity check
   input <- filter(input, ! is.na( chr ) )
