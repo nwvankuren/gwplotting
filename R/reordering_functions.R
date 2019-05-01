@@ -63,20 +63,34 @@ reorder_scaffolds <- function( input , assignments, species ){
   }
 
   reordered <- readr::read_table2( assignments , col_names = T  )
+
+  # OLD VERSION of OrderScaffoldsByBlatProteins.pl and CURRENT (4-4-19) version
+  # of ConvertRagooToMapping.pl
   #`#scaf`     scafLen scafMin scafMax chr    chrMin  chrMax strand num_proteins median_pos
   #<chr>         <int>   <int>   <int> <chr>   <int>   <int> <chr>         <int>
   #1 scaffold49  1564542   53542  901564 chr7  6339484 6621196 +                19
   #2 scaffold460  191485   28352  184843 chr2  3270890 3397095 +                 8
   #3 scaffold580  104787   14511   68652 chr3  8062310 8083970 +                 3
 
+  # 4-3-2019 version of OrderScaffoldsByBlatProteins.pl
+  # `#scaf`         scafLen	 scafMin scafMax	scafMid	   chr	chrMin	chrMax	 chrMedian strand	num_proteins
+  # NW_020662793.1	10603640 66045	 10488078	5111737.75  4	 7641530	16690293 12731507	 NA	    312
+  # NW_020662794.1	 3247479 49402    3244253	1903466.75 24	 5034737   9231567  5843544	 NA	     68
+  # NW_020662795.1	 1923411  1723	  1923242	 827769.5	  2 11870059	15057231	3105893	  -	    111
+
   colnames( reordered )[1] <- 'scaf'
+
+  # Handle new version of output
+  if( 'chrMedian' %in% colnames(reordered) ){
+    colnames(reordered)[ colnames( reordered ) == "chrMedian" ] <- 'median_pos'
+  }
 
   # Strip platanus scaffold sizes if they're there
   reordered <- dplyr::mutate( reordered,
                   scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") ) %>%
     dplyr::mutate( orichr = paste0(chr,":",chrMin,"-",chrMax,"(",strand,")"))
 
-  cat("scaffold names are like so:",as.character(reordered[1,1]),"\n")
+  # cat("scaffold names are like so:",as.character(reordered[1,1]),"\n")
   # Handle the different species -----------------------------------------------
 
   if( species %in% chr_species ){
