@@ -270,6 +270,13 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
     dplyr::mutate( dist = ps2 - ps ) %>%
     dplyr::select( tidyselect::one_of( keep ) )
 
+  # correct column names to be consistent with data structure
+  if( length( stat ) == 1 ){
+    colnames( tf )[4] <- 'stat'
+  } else {
+    colnames( tf )[4:5] <- c('stat','stat2')
+  }
+
   # Add a false chr column with a number for each chromosome
   scaf_order <- tibble::tibble( scaf = rle( tf$scaf )$values ,
                                 num = as.numeric(seq( 1:length(unique( tf$scaf )))))
@@ -279,7 +286,6 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
   return( tf )
 
 }
-
 #' Load a results file from Simon Martin's popgenWindows.py script.
 #'
 #' This function was developed strictly following his GitHub description of the
@@ -302,7 +308,7 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
 #'                  package = "gwplotting")
 #' b <- load_pgw( a )
 #' b
-load_pgw <- function( file, position = 'midpoint',
+load_popgenWindows <- function( file, position = 'midpoint',
                            min_sites = 0 ){
 
   tf <- readr::read_csv( file, col_names = T )

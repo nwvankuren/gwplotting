@@ -1,0 +1,107 @@
+---
+title: "gwplotting Use Guide"
+author: Nicholas W. VanKuren
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{gwplotting_vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, message=FALSE, echo=FALSE }
+library(gwplotting)
+```
+
+# Introduction {#introduction}
+The `gwplotting` package is meant to simplify plotting common statistics from genome-wide analyses, for example genome-wide association studies and windowed population genomics analyses. These functions depend primarily on simple manipulations using the `tidyverse` package. The functions included in `gwplotting` fall into two primary categories:
+
+1. File loading functions
+    * load_gemma_gwas
+    * load_plink_gwas
+    * load_vcftools_stats
+    * load_popgenWindows
+    * load_abbababa
+    * load_plink_ld
+2. Reordering or binning functions
+    * reorder_scaffolds
+    * reorder_by_scaf_len
+    * get_cumulative_positions
+    * calculate_ld_decay
+3. Plotting functions
+    * plot_genomewide_data
+    * plot_region_data 
+    * add_annotations
+
+Most of the functions have self-explanatory names. Below I will outline a few case studies to highlight how this package can be used.
+
+# Motivation
+
+Our lab has sequenced, assembled, and annotated a number of non-model species' genomes. We then typically generate population re-sequencing data that we use to perform population genetic and population genomics analyses. The variety and frequency with which we analyze different genomes and datasets prompted me to make a simple package that will perform common plotting tasks. This package takes as input a few common file types to output a number of useful plots that can be refined using additional `ggplot2` functions, if necessary.
+
+# Frequently used files
+
+Many `gwplotting` functions require a small set of key files that can be easily generated with widely-used tools. These are in addition to the input files.
+
+## 1. Scaffold lengths {#scaf-lens}
+
+Most reordering functions and some plotting functions require a 2-column tab-delimited file containing scaffold names and their lengths, e.g:
+
+```
+scaffold1      1000
+scaffold2     12543
+...
+scaffold1234 128910
+```
+
+You can generate this file using `samtools faidx` and `cut` the first two columns from the .fai file. I typically call this `<genome_name>.info`.
+
+## 2. Mapping files {#mapping-files}
+
+It is usually useful to try and assign your draft genome scaffolds to a chromosome-level genome assembly from a closely-related species. This mapping information can then be used with certain functions to reorder your results according to the chromosome-level assembly. There are a variety of tools that will do this, but I have mainly used two methods:
+
+* [RaGOO](https://github.com/malonge/RaGOO), which is based on DNA sequence similarity and [minimap2](https://github.com/lh3/minimap2) alignments. This works well up to ~5 - 10% divergence between draft and reference genomes. I then convert RaGOO output to a common format using the custom perl script [ConvertRagooToMapping.pl](https://github.com/nwvankuren/scripts/genome-reordering/ConvertRagooToMapping.pl)
+* [OrderScaffoldsByBlatProteins.pl](https://github.com/nwvankuren/scripts/genome-reordering/OrderScaffoldsByBlatProteins.pl), which is based on best protein alignments from the reference genome to the draft genome. 
+
+However, `gwplotting` functions that utilize mapping information (e.g. `reorder_scaffolds()`) really only require the mapping file to contain four columns with these names: 
+
+* scaf: the draft scaffold name
+* chr: the reference chromosome or scaffold that the draft scaffold is assigned to 
+* strand: the orientation of the draft scaffold relative to the chromosome (`+` or `-`)
+* median_pos: originally the median position of the match on the reference genome, this can be any number that gives the relative order of the draft scaffolds within the chromosomes.
+
+Examples:
+
+| scaf | scafLen	| scafMin | scafMax | chr | chrMin | chrMax | strand | num_proteins | median_pos|
+|:------------|------:|-----:|------:|:------------|-----:|------:|:--|:---|--:|
+|scaffold903	| 10227 | 2723 | 10035 | Hmel200007o | 3662 | 13152 | + | NA | 1 |
+|scaffold728	| 21685	|  148 | 20708 | Hmel200008o | 5874 | 31779	| + | NA | 1 |
+|scaffold2427	|  7208 |	4206 |  6951 | Hmel200023o | 5365 |  6970 | - | NA | 1 |
+
+...
+
+| scaf | scafLen | scafMin | scafMax | scafMid | chr | chrMin | chrMax | chrMedian | strand | num_proteins |
+|:-----|--------:|--------:|--------:|--------:|:---|--------:|-------:|------------------:|:-------|--------------:|
+| scaffold706 |  23947 | 961	|7068	|4158.5	|Hmel200218o	|45453|	54246|	49334.5	| +|	2 |
+| scaffold426 | 152346 | 22717 |	148311|	94437	|Hmel201001o|	3557003|	3685557|	3628260.5	|2|
+| scaffold545|	74324|	6079|	42055|	27244.75	|Hmel201001o|	4823317|	4871986|	4845220.75	|-|	2|
+
+## 3. GFF and BED format files {#gff-bed-files}
+
+[GFF v3](https://useast.ensembl.org/info/website/upload/gff3.html) and [BED](https://useast.ensembl.org/info/website/upload/bed.html) files containing features of interest can be supplied to some functions to add annotations to plots along the x-axis.
+
+# Detailed example: Plotting results from a GWA analysis
+
+## 1. Motivation
+
+[@VanKuren2019] used GWA to identify loci controlling a phenotype switch in the polymorphic butterfly *Papilio clytia*. These butterflies develop one of two distinct wing color patterns that mimic
+
+
+

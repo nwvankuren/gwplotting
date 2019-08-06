@@ -7,11 +7,12 @@
 #' @param input A tibble with four columns (scaf, ps, stat, and chr)
 #' @param type Type of input: gwas, popgen. gwas will -log10 the stat, while
 #'     popgen will estimate the ylimits.
-#' @param scaffold_lengths Name of a two-column tab delimited file with
+#' @param scaffold_lengths Path to the two-column tab delimited file containing
 #'     scaffold and length.
 #' @param plotting_column Name of the column to plot. Usually will be 'stat'
+#' @param col1 Color of odd chromosomes
+#' @param col2 Color of even chromosomes
 #' @inheritParams get_cumulative_positions
-#' @inheritParams ggplot2
 #' @return  A ggplot object that can be printed to file.
 #' @export
 #'
@@ -27,27 +28,31 @@
 #'                            plotting_column = 'stat')
 #' c
 plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
-                                  plotting_column = 'stat' ){
+                                  plotting_column = 'stat', col1 = 'grey',
+                                  col2 = 'black'){
 
   # Take care of GWAS ----------------------------------------------------------
   if( type == 'gwas' ){
 
     message("--Getting FDR values...\n")
 
-    pvals.adj <- p.adjust( input$stat, method = 'fdr' )
-    x <- cbind( input$stat, pvals.adj )
+    pvals <- input$stat[ ! is.na( input$stat ) ]
+    pvals.adj <- p.adjust( pvals, method = 'fdr' )
+    x <- cbind( pvals, pvals.adj )
     x <- x[ order( x[ , 'pvals.adj'], decreasing = T ), ]
     p10 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.1, ], n = 1 )[1])
+    p05 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.05, ], n = 1 )[1])
     p01 <- -log10(head( x[ x[ , 'pvals.adj' ] <= 0.01, ], n = 1 )[1])
 
-    cat( paste0("--10% and 1% cutoffs are ",p10," and ",p01,"\n") )
+    cat( paste0("--10%, 5%, and 1% cutoffs are ",p10,", ",p05,", and ",p01,"\n") )
     # Significance lines
     sigLines <- list(ggplot2::geom_hline( ggplot2::aes( yintercept = p10 ),
                                           color = 'blue', alpha = 0.50,
                                           linetype = 'dashed'),
                      ggplot2::geom_hline( ggplot2::aes( yintercept = p01 ),
                                           color = 'red', alpha = 0.50,
-                                          linetype = 'dashed' ))
+                                          linetype = 'dashed' ),
+                     ylab( bquote( -log[10]( italic(p)))))
 
     # Reduce gwas and plot size
     input <- filter( input, stat <= 0.05 )
@@ -67,7 +72,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 
   # Get cumulative positions ---------------------------------------------------
   input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
-                                     buffer = 20000, after = 'chromosomes' )
+                                     buffer = 100000, after = 'chromosomes' )
 
   # Plotting -------------------------------------------------------------------
 
@@ -83,7 +88,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
     # Show all points
     ggplot2::geom_point( ggplot2::aes( color = factor( input$chr, levels = unique( input$chr )) ),
                          alpha = 0.75 , size = 1 ) +
-    ggplot2::scale_color_manual( values = rep(c("grey", "black"), ceiling( num_chr/2 ) ,
+    ggplot2::scale_color_manual( values = rep(c(col1, col2), ceiling( num_chr/2 ) ,
                                               length = num_chr )) +
 
     # custom X axis:
@@ -102,8 +107,6 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
       panel.grid.minor.x = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
       axis.text = ggplot2::element_text( size = 6 ),
-      # axis.text.x = ggplot2::element_text( angle = 35 , vjust = 1.25, hjust = 0.95 ),
-      #axis.text.x = ggplot2::element_blank(),
       axis.title = ggplot2::element_text( size = 8 )
     )
 
@@ -121,7 +124,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #' the raw tibble from any of the loading functions, 2) a reordered tibble, or
 #' 3) a tibble with cumulative positions. This function will operate differently
 #' on each of these input types. If the input already has cumulative positions
-#' (i.e. column bp_cum), the the "from" and "to" variables are interpreted as
+#' (i.e. column bp_cum), then the "from" and "to" variables are interpreted as
 #' "from = bp_cum start" and "to = bp_cum end". If the input does not have
 #' column bp_cum, then this function will generate bp_cum according to the
 #' desired chromosome or scaffold, assume that the supplied "from" and "to"
@@ -131,16 +134,16 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #'
 #' @param input A tibble
 #' @param chromosome Chromosome to plot. This will be coded in the "chr"
-#'     column of your tibble. This or scaffold may be specified.
+#'     column of your tibble. This OR scaffold may be specified.
 #' @param scaffold Scaffold to plot. This will be coded in the "scaf" column
-#'     of your tibble. This or chromosome may be specified.
+#'     of your tibble. This OR chromosome may be specified.
 #' @param from Start position, if desired.
 #' @param to End position, if desired
 #' @param type Type of statistic: gwas, popgen.
 #' @param plotting_column Name of the column to plot. Usually will be 'stat'
-#' @param scaffold_lengths Name of a two-column tab delimited file with
+#' @param scaffold_lengths Path to a two-column tab delimited file with
 #'     scaffold and length.
-#' @inheritParams ggplot2
+#' @param color Color for points
 #'
 #' @return A ggplot2 object containing the plot.
 #' @export
@@ -157,7 +160,8 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 #' c <- plot_region_data( b, chromosome = chrom, type = 'gwas',
 #' plotting_column = 'stat', scaffold_lengths = a2)
 #' c
-plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1, to = NA, type,
+plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1,
+                              to = NA, type = 'gwas', color = 'black',
                               plotting_column = 'stat', scaffold_lengths,
                               include_all_p = FALSE ){
 
@@ -222,7 +226,9 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1, t
   # Plotting -------------------------------------------------------------------
 
   for_plot <- ggplot2::ggplot( input,
-                               ggplot2::aes_string( x = "bp_cum" , y = plotting_column, fill = '"black"' )) +
+                               ggplot2::aes_string( x = "bp_cum" ,
+                                                    y = plotting_column,
+                                                    fill = color )) +
 
     # Show all points
     ggplot2::geom_point( alpha = 0.75 , size = 1  ) +
@@ -241,13 +247,252 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1, t
       panel.grid.minor.x = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
       axis.text = ggplot2::element_text( size = 6 ),
-      # axis.text.x = ggplot2::element_text( angle = 35 , vjust = 1.25, hjust = 0.95 ),
-      #axis.text.x = ggplot2::element_blank(),
       axis.title = ggplot2::element_text( size = 8 )
     )
+
+  # Appropriate y lab
+  if( type == "gwas" ){
+    for_plot <- for_plot + ylab( bquote( -log[10](italic(p))))
+  }
 
   return( for_plot )
 
 }
 
+#' Add geom_rect() objects to a ggplot.
+#'
+#'This function will calculate the coordinates of scaffold spans or gene models
+#'for addition to a ggplot. It will use scaffold spans encoded in the input
+#'tibble. GFF features of the specified type will be plotted if a GFF file is
+#'specified.
+#'
+#' @param input Tibble containing scaf, ps, stat, chr, and bp_cum ONLY for the
+#'     region you want to plot.
+#' @param ymin Minimum y positions for geom_rects.
+#' @param ymax Maximum y positions for geom_rects.
+#' @param scaffold_lengths Path to a two-column tab-delimited file containing
+#'     scaffold names and their lengths.
+#' @param gff Path to a GFF or BED format file, if plotting gene models.
+#' @param feature GFF feature type to plot. Usually genes. Not extensively
+#'     tested.
+#' @param mapping Path to reordering file.
+#'
+#' @return A four-column tibble containing an ID, xmins, xmaxs, ymins, and ymaxs
+#'     for use in a geom_rect() call.
+#' @export
+#'
+#' @examples
+#' a1 <- system.file("extdata", "test.gemma_gwas.txt.gz",
+#'                  package = "gwplotting")
+#' a2 <- system.file("extdata", "test.chromSizes.txt.gz",
+#'                   package="gwplotting")
+#'
+#' # Load statistics, add cumulative positions (bp_cum)
+#' b <- load_gemma_gwas( a1, pval = 'p_wald' )
+#' c <- get_cumulative_positions( b, scaffold_lengths = a2 )
+#'
+#' # Get scaffold rects
+#' scafs <- add_annotations( c, ymin = 0, ymax = 0.5 )
+#'
+#' scafs
+#'
+#' # Add rects to a plot of the region data
+#' d <- plot_region_data( c, chromosome = 1, type = 'gwas',
+#'                        plotting_column = 'stat', scaffold_lengths = a2) +
+#'      geom_rect( inherit.aes = F,
+#'                 data = scafs,
+#'                 mapping = aes( xmin = xmins,
+#'                                xmax = xmaxs,
+#'                                ymin = ymins,
+#'                                ymax = ymaxs),
+#'                 color = 'black',
+#'                 alpha = 0.5,
+#'                 size = 0.25 )
+#'
+#' d
+add_annotations <- function( input, ymin, ymax, scaffold_lengths,
+                             gff = NA, feature = NA, mapping = NA){
 
+  # Check to see if all params specified
+  if( ! 'bp_cum' %in% colnames(input) ){
+    stop("ERROR: You must first calculate cumulative positions for your input.\n")
+  } else if( is.na( ymin ) | is.na( ymax ) | is.na( scaffold_lengths ) ){
+    stop("ERROR: You must specify input, ymin, ymax, and scaffold_lengths.\n")
+  } else if( ! is.na( gff ) ){
+    if( is.na( feature ) & ( grepl( ".gff", gff ) | grepl( ".gff.gz$", gff ) ) ){
+      stop("ERROR: You must specify a feature type when plotting GFF features.\n")
+    } else if( ! file.exists( gff ) ){
+      stop("ERROR: GFF file doesn't exist.\n")
+    }
+  }
+
+  # What scaffolds are in this region
+  scafs_in_region <- unique( input$scaf )
+
+  # Handle scaffolds first. Doesn't matter if they're reordered because they're
+  # just based on length.
+  if( is.na( gff ) ){
+
+    # empty vectors
+    xmins <- vector( length = length(scafs_in_region) )
+    xmaxs <- xmins
+
+    # loop over scaffolds, get min/max bp_cum positions for each scaffold
+    for( i in 1:length( scafs_in_region )){
+      xmins[i] <- head( dplyr::filter( input, scaf == scafs_in_region[i] & !is.na( bp_cum ) ), n = 1)$bp_cum;
+      xmaxs[i] <- tail( dplyr::filter( input, scaf == scafs_in_region[i] & !is.na( bp_cum ) ), n = 1)$bp_cum;
+    }
+
+    ymins <- rep( ymin, length( xmins ) )
+    ymaxs <- rep( ymax, length( xmins ) )
+    ids <- scafs_in_region
+
+  } else {
+
+    # We're doing GFF or BED features. If there is a mapping file, then the input
+    # has already been reordered and we need to take into account strand
+    # information when determining x values.
+
+    # if it's a bed file, figure out what kind and keep necessary info
+    if( grepl( ".bed$", gff ) | grepl( ".bed.gz$", gff ) ){
+
+      g <- readr::read_tsv( gff, comment = "#", col_names = F )
+
+
+      if( ncol( g ) >= 6 ){
+        # bed12
+        g <- tidyr::select( g, X1, X2, X3, X4, X6 ) %>%
+          dplyr::filter( X1 %in% scafs_in_region )
+        colnames(g) <- c('chrom','start','end','id','strand')
+      } else if( ncol( g ) >= 4 ){
+        #>bed4
+        g <- tidyr::select( g, X1, X2, X3, X4 ) %>%
+          tibble::add_column( strand = rep( '+', nrow(g) ) ) %>%
+          dplyr::filter( X1 %in% scafs_in_region )
+        colnames(g) <- c('chrom','start','end','id','strand')
+      } else if( ncol(g) == 3 ){
+        #simple bed
+        colnames(g) <- c('chrom','start','end')
+        g <- tibble::add_column( id = 1:nrow(g), strand = rep( '+', nrow(g) )) %>%
+          dplyr::filter( chrom %in% scafs_in_region )
+      }
+
+      # otherwise, should be GFF
+    } else if( grepl( ".gff$", gff ) |  grepl( ".gff.gz$", gff ) ){
+
+      gff_colnames <- c('chrom','source','type','start','end',
+                        'score','strand','phase','attributes')
+
+      # open, filter,
+      g <- readr::read_tsv( file = gff, comment = "#",
+                            col_names = gff_colnames  ) %>%
+        dplyr::filter( type == feature & chrom %in% scafs_in_region & ! grepl("other",source) ) %>%
+        dplyr::select( chrom, start, end, strand, attributes ) %>%
+        dplyr::mutate( id = stringr::str_replace( attributes, "[;].*$", "") ) %>%
+        dplyr::mutate( id = stringr::str_replace( id, "ID=","")) %>%
+        dplyr::select( -attributes )
+
+    } else {
+      # not bed or gff
+      stop("ERROR: Expecting a .bed(.gz) or .gff(.gz) file for gff.\n")
+    }
+
+    # Hopefully there are some features in here
+    if( nrow(g) == 0 ){
+      stop("ERROR: No features in this region\n")
+    } else {
+      message("Plotting ", nrow(g)," features")
+    }
+
+    # There are some models on this/these scaffolds. Now, must get strand and
+    # convert coordinates.
+    # g = chrom, start, end, strand, id
+
+    # Get scaffold --> chromosome orientation
+    if( is.na( mapping ) ){
+      scaf_strands <- cbind( scafs_in_region, rep('+', length(scafs_in_region)))
+      colnames( scaf_strands ) <- c('scaf','strand')
+    } else {
+      scaf_strands <- readr::read_table2( mapping , col_names = T  )
+      colnames(scaf_strands)[1] <- 'scaf'
+
+      scaf_strands <- dplyr::select( scaf_strands, scaf, strand ) %>%
+        dplyr::filter( scaf %in% scafs_in_region )
+
+      #scaf_lens is not ordered
+      scaf_lens <- readr::read_table2( scaffold_lengths,
+                                       col_names = c('scaf', 'length')) %>%
+        dplyr::filter( scaf %in% scafs_in_region )
+
+    }
+
+    # Now, shift each gff feature by bp_cum offset
+    for( s in 1:length(scafs_in_region) ){
+
+      # input
+      # scaf_strands --> d.f(scaf, strand)
+      # g --> tibble(chrom, start, end, strand, id ) [ chrom == scaffold ]
+
+      # get the offset
+      offset <- input$bp_cum[ input$scaf == scafs_in_region[s] ][1] -
+        input$ps[ input$scaf == scafs_in_region[s]][1]
+
+      # nothing special if it's on the + strand
+      if( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s] ] == '+' ){
+        g$start[ g$chrom == scafs_in_region[s] ] <-
+          g$start[ g$chrom == scafs_in_region[s] ] + offset
+
+        g$end[ g$chrom == scafs_in_region[s] ] <-
+          g$end[ g$chrom == scafs_in_region[s] ] + offset
+
+      } else {
+
+        # on the - strand, so (length - ps).
+        g$start[ g$chrom == scafs_in_region[s] ] <-
+          scaf_lens$length[ scaf_lens$scaf == scafs_in_region[s] ] -
+          g$start[ g$chrom == scafs_in_region[s] ] + offset
+
+        g$end[ g$chrom == scafs_in_region[s] ] <-
+          scaf_lens$length[ scaf_lens$scaf == scafs_in_region[s] ] -
+          g$end[ g$chrom == scafs_in_region[s] ] + offset
+
+        # switch strand for genes on those scaffolds that map in the
+        # - orientation relative to chromosomes
+        ori_strands <- g$strand[ g$chrom == scafs_in_region[s] ]
+        ori_strands <- replace( ori_strands, ori_strands == '+', 'P')
+        ori_strands <- replace( ori_strands, ori_strands == '-', 'M')
+        ori_strands <- replace( ori_strands, ori_strands == 'P', '-')
+        ori_strands <- replace( ori_strands, ori_strands == 'M', '+')
+
+        # replace strand
+        g$strand[ g$chrom == scafs_in_region[s] ] <- ori_strands
+
+      }
+    }
+
+    # Keep only models within the plotting region
+    g <- dplyr::filter( g, start >= min( input$bp_cum ) &
+                          start <= max( input$bp_cum ) &
+                          end >= min( input$bp_cum ) &
+                          end <= max( input$bp_cum) )
+    # get vectors of interest
+    xmins <- g$start
+    xmaxs <- g$end
+    ymins <- unlist(dplyr::mutate(g, ymins = ifelse( strand == '-', ymin,
+                                                     ymin + 0.5*(ymax - ymin))) %>%
+                      dplyr::select( ymins ))
+
+    ymaxs <- unlist(dplyr::mutate(g, ymaxs = ifelse( strand == '-', ymin + 0.5*(ymax - ymin),
+                                                     ymax))  %>%
+                      dplyr::select( ymaxs ))
+
+    ids <- g$id
+
+  } # END of if is.na(gff)
+
+  # construct tibble to return
+  fr <- tibble::tibble(ids, xmins, xmaxs, ymins, ymaxs )
+
+  return( fr )
+
+}

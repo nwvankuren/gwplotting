@@ -26,12 +26,12 @@
 #' The appropriate abbreviation should be supplied to the "species" argument
 #' to the reordering function.
 #'
-#' @param input A three-column tibble containing (at minimum) scaffold, ps, and
+#' @param input A tibble containing (at minimum) scaffold, ps, and
 #'     stat as the first three columns.
 #' @param assignments Name of the file containing the reordering information.
 #' @param species The abbreviation for the species assembly you ordered to.
 #'
-#' @return Returns the input tibble with a new column, chr, detailing which
+#' @return Returns the input tibble with chr colun detailing which
 #'     reference genome chromosomes the draft genome scaffolds map to. Only
 #'     input rows that reside on mapped scaffolds are included.
 #' @export
@@ -209,7 +209,10 @@ reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
   input$chr <- lids[ match( input$scaf, lens$scaf ) ]
 
   # Remove too short
-  input <- filter( input, chr < cutoff )
+  if( length( lens$length[lens$length < min_length] ) > 0 ){
+    cutoff <- min( lids[ lens$length < min_length ], na.rm = T )
+    input <- filter(input, chr < cutoff )
+  }
 
   # Order
   input <- input[ order( as.numeric( input$chr ),
@@ -219,22 +222,21 @@ reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
 
 }
 
-
 #' Assign cumulative positions to postions split by scaffolds.
 #'
 #'This function will add a new column to your tibble, bp_cum with the cumulative
-#'sum of positions in the ps column. This makes it so that each row in the
+#'sum of positions in the ps column. This makes it so that the stat in each row in the
 #'tibble can be plotted sequentially.
 #'
-#' @param input A tibble, usually with the columns scaf (scaffold), ps
+#' @param input A tibble with the columns scaf (scaffold), ps
 #'     (position), and stat (statistic) at the minimum. This function operates
 #'     on the ps column.
-#' @param buffer Extra amount to add between scafs scaffolds or chromosomes.
+#' @param buffer Extra amount to add between consecutive scaffolds or chromosomes.
 #' @param after Where to add buffer, either after scaffolds or chromosomes.
-#' @param scaffold_lengths Name of the two-column tab-delimited file containing
+#' @param scaffold_lengths Path to the two-column tab-delimited file containing
 #'     scaffold name and length.
 #'
-#' @return A reordered tibble.
+#' @return The original tibble, containing a new column, bp_cum, with cumulative positions.
 #' @export
 #'
 #' @examples
@@ -246,7 +248,7 @@ reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
 #'
 #' b <- load_gemma_gwas( a1, pval = 'p_wald' )
 #' b <- get_cumulative_positions( input = b, scaffold_lengths = a2,
-#' buffer=10000, after = 'scaffolds' )
+#' buffer=1000, after = 'scaffolds' )
 #' b
 get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
                                       after = 'scaffolds' ){
@@ -256,7 +258,7 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
   } else if( after == "chromosomes" ){
     after <- 'chr'
   } else {
-    stop("after must be set to either scaffolds or chromosomes")
+    stop("\"after\" must be set to either scaffolds or chromosomes")
   }
 
   # Each subsequent scaffold gets the cumulative length of previous scaffolds

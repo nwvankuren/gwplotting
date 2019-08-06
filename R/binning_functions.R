@@ -45,6 +45,102 @@ calculate_ld_decay <- function( input, bin_size = 200, max_dist = 50000,
     dplyr::mutate( position = as.numeric( stringr::str_replace( position, "\\)|\\]","" ))) %>%
     dplyr::select( position, mean_stat )
 
+}
+
+
+#' Function for applying to single-scaffold LD tibbles. Used by the
+#' calculate_windowed_ld function.
+#'
+#' @param input A tibble
+#' @param window Window size, in bp
+#' @param step Step size, in bp
+#'
+#' @return A summary tibble
+#' @export
+#'
+#' @examples
+ld_roller <- function( input, window, step ){
+
+  start <- min( input$ps, na.rm = T )
+  end <- max( input$ps, na.rm = T )
+
+  nwin <- round(( end - start ) / step)
+
+  if( nwin == 0 ){
+    nwin <- 1
+  }
+
+  message( paste0("Calculating means in a total of ", nwin, " windows."))
+
+  # desired output: ps, stat, nvar, chr
+  results <- matrix( nrow = nwin,
+                     ncol = 4,
+                     dimnames = list( 1:nwin, c('ps','stat','nvar','chr') ) )
+
+  # Window by window
+  win_num <- 1
+
+  while( start + window <= end ){
+
+    results[ win_num, 'ps' ] <- start + 0.5 * window
+
+    # subset
+    vars <- filter( input, ps > start & ps <= start + window )
+
+    results[ win_num, 'nvar' ] <- length( unique( vars$ps ))
+    results[ win_num, 'stat' ] <- mean( vars$stat, na.rm = T )
+
+    win_num <- win_num + 1
+    start <- start + step
+
+
+    if( ( win_num %% 100 ) == 0 ){
+      message(sprintf( "Finished %.2f%% of windows", (win_num/nwin*100) ))
+    }
+  }
+
+  results[,'chr'] <- input$chr[1]
+
+  results <- tibble::as_tibble( results )
+
+  return( results )
 
 }
 
+#' Calculate average LD values in sliding windows
+#'
+#' This function will take as input a tibble containing a PLINK LD file
+#' loaded with load_plink_ld(), calculate mean LD values (based on the stat
+#' column values), and return a new tibble.
+#'
+#' @param input A tibble constructed with load_plink_ld
+#' @param window Size of window, in bp, to calculate mean LD in
+#' @param step Step size between windows
+#'
+#' @return A four-column tibble containing summary statistics
+#' @export
+#'
+#' @examples
+calculate_windowed_ld <- function( input, window, step ){
+
+  # input:
+  # A tibble: 39,636,531 x 5
+  #   scaf           ps  dist    dp    chr
+  #   <chr>       <dbl> <dbl>  <dbl> <dbl>
+  # 1 scaffold160    82   497 0.771      1
+  # 2 scaffold160    82   521 0.609      1
+  # 3 scaffold160    82   565 0.190      1
+
+  # Desired output:
+  # scaf ps stat nsites chr
+
+  # Scaffold by scaffold
+
+  output <- input %>% group_by( scaf ) %>% nest() %>%
+    mutate( means = map( data, ld_roller, window = window, step = step ) ) %>%
+    select( scaf, means ) %>%
+    unnest() %>%
+    ungroup()
+
+  return( output )
+}
