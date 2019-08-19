@@ -4,7 +4,7 @@
 \alias{reorder_by_scaf_len}
 \title{Reorder scaffolds based on their size.}
 \usage{
-reorder_by_scaf_len(input, scaffold_lengths)
+reorder_by_scaf_len(input, scaffold_lengths, min_length = 0)
 }
 \arguments{
 \item{input}{A three-column tibble containing (at minimum) scaffold, ps, and
@@ -12,6 +12,8 @@ stat as the first three columns.}
 
 \item{scaffold_lengths}{Name of the two-column tab-delimited file containing
 scaffold name and length.}
+
+\item{min_length}{Minimum length of scaffolds to keep}
 }
 \value{
 A four-column tibble with scaffolds ordered in increasing size.

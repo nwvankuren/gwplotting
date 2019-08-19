@@ -8,23 +8,23 @@ get_cumulative_positions(input, scaffold_lengths, buffer = 0,
   after = "scaffolds")
 }
 \arguments{
-\item{input}{A tibble, usually with the columns scaf (scaffold), ps
+\item{input}{A tibble with the columns scaf (scaffold), ps
 (position), and stat (statistic) at the minimum. This function operates
 on the ps column.}
 
-\item{scaffold_lengths}{Name of the two-column tab-delimited file containing
+\item{scaffold_lengths}{Path to the two-column tab-delimited file containing
 scaffold name and length.}
 
-\item{buffer}{Extra amount to add between scafs scaffolds or chromosomes.}
+\item{buffer}{Extra amount to add between consecutive scaffolds or chromosomes.}
 
 \item{after}{Where to add buffer, either after scaffolds or chromosomes.}
 }
 \value{
-A reordered tibble.
+The original tibble, containing a new column, bp_cum, with cumulative positions.
 }
 \description{
 This function will add a new column to your tibble, bp_cum with the cumulative
-sum of positions in the ps column. This makes it so that each row in the
+sum of positions in the ps column. This makes it so that the stat in each row in the
 tibble can be plotted sequentially.
 }
 \examples{
@@ -36,6 +36,6 @@ a2 <- system.file("extdata", "test.chromSizes.txt.gz",
 
 b <- load_gemma_gwas( a1, pval = 'p_wald' )
 b <- get_cumulative_positions( input = b, scaffold_lengths = a2,
-buffer=10000, after = 'scaffolds' )
+buffer=1000, after = 'scaffolds' )
 b
 }

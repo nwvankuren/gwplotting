@@ -306,7 +306,7 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
 #' @examples
 #' a <- system.file("extdata", "test.popgen.csv.gz",
 #'                  package = "gwplotting")
-#' b <- load_pgw( a )
+#' b <- load_popgenWindows( a )
 #' b
 load_popgenWindows <- function( file, position = 'midpoint',
                            min_sites = 0 ){

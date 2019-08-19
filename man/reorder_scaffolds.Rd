@@ -7,15 +7,15 @@
 reorder_scaffolds(input, assignments, species)
 }
 \arguments{
-\item{input}{A three-column tibble containing (at minimum) scaffold, ps, and
-stat as the first three columns.}
+\item{input}{A tibble containing scaffold, ps,
+stat, and chr as the first three columns.}
 
 \item{assignments}{Name of the file containing the reordering information.}
 
 \item{species}{The abbreviation for the species assembly you ordered to.}
 }
 \value{
-Returns the input tibble with a new column, chr, detailing which
+Returns the input tibble with chr colun detailing which
     reference genome chromosomes the draft genome scaffolds map to. Only
     input rows that reside on mapped scaffolds are included.
 }
@@ -23,26 +23,25 @@ Returns the input tibble with a new column, chr, detailing which
 This function will reorder the results of a genome-wide statistical
 analysis based on the contents of a file that assigns each scaffold to a
 reference genome assembly. The assignments can be generated using, e.g.
-OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr
-scaf, scafLen, chr, strand, median_pos \cr
+OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr\cr
+scaf, scafLen, chr, strand, median_pos \cr\cr
 where scaf is scaffold name, scafLen is the scaffold length, chr is the
 chromosome assignment, strand is the direction of the scaffold relative to
 the chromosome, and median pos is the position of the scaffold along the
 chromosome. This last bit is used to relatively order the scaffolds and must
-be increasing along the chromosome length. \cr
-\cr
+be increasing along the chromosome length. \cr\cr
 The main difficulty is handling the variety of different species' chromosome
 level assemblies. Some, like \emph{Melitaea cinxia} and
 \emph{Papilio xuthus} follow the convention of "chr1", etc. Others, however,
 like the Heliconius genomes, haven't specified complete chromosomes and have
 a unique naming system, typically e.g. Hmel201003o. These need to be handled
 differently. I can only guarantee that reordering information from the
-following genomes can currently be handled:\cr
+following genomes can currently be handled:\cr\cr
 \emph{Heliconius melpomene} v2.5 (hmel)\cr
 \emph{H. erato demophoon} v1.0 (herd)\cr
 \emph{Bombyx mori} chromosome (bmor)\cr
 \emph{Papilio xuthus} chromosome (pxut)\cr
-\emph{Melitaea cinxia} (mcin)\cr
+\emph{Melitaea cinxia} (mcin)\cr\cr
 The appropriate abbreviation should be supplied to the "species" argument
 to the reordering function.
 }

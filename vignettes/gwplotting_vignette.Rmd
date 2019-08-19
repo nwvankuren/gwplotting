@@ -21,7 +21,7 @@ library(gwplotting)
 ```
 
 # Introduction {#introduction}
-The `gwplotting` package is meant to simplify plotting common statistics from genome-wide analyses, for example genome-wide association studies and windowed population genomics analyses. These functions depend primarily on simple manipulations using the `tidyverse` package. The functions included in `gwplotting` fall into two primary categories:
+The `gwplotting` package helps simplify plotting of common statistics from genome-wide analyses, for example genome-wide association studies and windowed population genomics analyses. These functions depend primarily on simple manipulations using the `tidyverse` package. The functions included in `gwplotting` fall into three primary categories:
 
 1. File loading functions
     * load_gemma_gwas
@@ -46,16 +46,18 @@ Most of the functions have self-explanatory names. Below I will outline a few ca
 
 Our lab has sequenced, assembled, and annotated a number of non-model species' genomes. We then typically generate population re-sequencing data that we use to perform population genetic and population genomics analyses. The variety and frequency with which we analyze different genomes and datasets prompted me to make a simple package that will perform common plotting tasks. This package takes as input a few common file types to output a number of useful plots that can be refined using additional `ggplot2` functions, if necessary.
 
-# Frequently used files
+# Important file types and objects
 
-Many `gwplotting` functions require a small set of key files that can be easily generated with widely-used tools. These are in addition to the input files.
+Many `gwplotting` functions require a small set of key files and objects that can be easily generated with widely-used tools. 
 
-## 1. Scaffold lengths {#scaf-lens}
+## 1. Key files
 
-Most reordering functions and some plotting functions require a 2-column tab-delimited file containing scaffold names and their lengths, e.g:
+### A. Scaffold lengths {#scaf-lens}
+
+Reordering and plotting functions require a 2-column tab-delimited file containing scaffold names and their lengths, e.g:
 
 ```
-scaffold1      1000
+scaffold1      1015
 scaffold2     12543
 ...
 scaffold1234 128910
@@ -63,7 +65,7 @@ scaffold1234 128910
 
 You can generate this file using `samtools faidx` and `cut` the first two columns from the .fai file. I typically call this `<genome_name>.info`.
 
-## 2. Mapping files {#mapping-files}
+### B. Mapping files {#mapping-files}
 
 It is usually useful to try and assign your draft genome scaffolds to a chromosome-level genome assembly from a closely-related species. This mapping information can then be used with certain functions to reorder your results according to the chromosome-level assembly. There are a variety of tools that will do this, but I have mainly used two methods:
 
@@ -93,15 +95,93 @@ Examples:
 | scaffold426 | 152346 | 22717 |	148311|	94437	|Hmel201001o|	3557003|	3685557|	3628260.5	|2|
 | scaffold545|	74324|	6079|	42055|	27244.75	|Hmel201001o|	4823317|	4871986|	4845220.75	|-|	2|
 
-## 3. GFF and BED format files {#gff-bed-files}
+### C. GFF and BED format files {#gff-bed-files}
 
 [GFF v3](https://useast.ensembl.org/info/website/upload/gff3.html) and [BED](https://useast.ensembl.org/info/website/upload/bed.html) files containing features of interest can be supplied to some functions to add annotations to plots along the x-axis.
 
-# Detailed example: Plotting results from a GWA analysis
+## Key object
 
-## 1. Motivation
+The file loading functions all produce a common, 4-column tibble containing (named) columns with scaffolds (scaf), scaffold positions (ps), statistics (stat), and chromosome assignments (chr). For example, reading in the example GEMMA GWA file would yield:
 
-[@VanKuren2019] used GWA to identify loci controlling a phenotype switch in the polymorphic butterfly *Papilio clytia*. These butterflies develop one of two distinct wing color patterns that mimic
+```{r}
+
+a <- system.file( "extdata", "test.gemma_gwas.txt.gz", package = "gwplotting" )
+
+gwa_obj <- load_gemma_gwas( a, pval = 'p_wald' )
+
+gwa_obj
+```
+
+So, any analysis whose results can be coerced into this type of object can be used as input to reordering or plotting functions. If you do not have chromosome assignments, simply add a dummy column of 1s. Note that this MUST BE A TIBBLE, not a data.frame, for use with these downstream functions. 
+
+# Detailed examples
+
+[@VanKuren2019] used GWA to identify loci controlling a phenotype switch in the polymorphic butterfly *Papilio clytia*. These butterflies develop one of two distinct wing color patterns that mimic distantly related toxic butterflies. Alternate alleles at a single locus, containing the gene *cortex*, determine which color pattern each *P. clytia* individual develops. We sequenced the genomes of 27 individuals, about half of each color pattern, then performed GWA using [GEMMA](https://github.com/genetics-statistics/GEMMA/releases). We will analyze 100,000 of those sites.   
+
+## 1. Plotting genome-wide results
+
+Load GWA results using built-in loading functions, or load and manipulate into the final form. Just ensure that it's a tibble and that it has the columns scaf, ps, stat, and chr. For GWA, stat will be the raw *p*-value. We already loaded our GWA results above into `gwa_obj`.
+
+We can plot the unordered results.
+
+```{r}
+
+scafs <- system.file("extdata", "test.chromSizes.txt.gz", package = "gwplotting" )
+
+unord_plot <- plot_genomewide_data( input = gwa_obj, type = 'gwas', scaffold_lengths = scafs, plotting_column = 'stat' )
+
+unord_plot
+```
+
+This is fine, but usually uninformative for finding interesting regions because you have no idea if multiple peaks on different small scaffolds in reality correspond to a single peak. We can use a chromosome-level assembly for a closely-related species to assign our scaffolds to chromosomes. We can use the output of these assignment pipelines to order these draft scaffolds during plotting.
+
+```{r}
+
+mapping <- system.file( "extdata", "test.reordering.txt.gz", package = "gwplotting" )
+
+ordered_gwa <- reorder_scaffolds( input = gwa_obj, assignments = mapping, species = 'pxut' )
+
+ord_plot <- plot_genomewide_data( input = ordered_gwa, type = 'gwas', scaffold_lengths = scafs, plotting_column = 'stat' )
+
+ord_plot
+
+```
+
+
+Certainly the plots are not exactly what you want, but you can easily tweak them in Illustrator or Inkscape. You can save these plots using `ggsave`.
+
+You will not always have chromosome mapping information, but you can still clean up your plot a little simply by re-ordering by scaffold length (longest to shortest) and removing short scaffolds using the `reorder_by_scaf_len()` function and plotting the same way.
+
+## 2. Plotting region data
+
+There appears to be a nice peak on chromosome 13 that we would want to investigate further. We can first plot chromosome 13 as a whole to get a sense for where the peak is. We can then zoom in further and add interesting features such as scaffolds and genes.
+
+```{r}
+
+chr13_plot <- plot_region_data( input = ordered_gwa, chromosome = 13, type = 'gwas', color = 'grey', scaffold_lengths = scafs )
+
+# plot chr13_plot. Peak is ~5.1 - 6.4 Mb
+chr13_zoom <- plot_region_data( input = ordered_gwa, chromosome = 13, from = 5100000, to = 6400000, type = 'gwas', color = 'grey', scaffold_lengths = scafs )
+
+cowplot::plot_grid( plotlist = list(chr13_plot, chr13_zoom), labels = c('A)','B)') )
+
+```
+
+We want to know where gene models and scaffolds are located in the zoomed-in plot. This is not perfect, and is really meant to be a starting point for finalizing in Inkscape or Illustrator.
+
+```{r}
+
+gff_file <- system.file( "extdata", "test.gff.gz", package = "gwplotting" )
+
+add_scafs <- add_annotations( )
+
+
+```
+
+
+
+
+
 
 
 
