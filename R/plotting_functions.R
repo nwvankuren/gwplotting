@@ -453,6 +453,8 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
     }
 
     # Now, shift each gff feature by bp_cum offset
+    message("Processing ", length(scafs_in_region)," scaffolds")
+
     for( s in 1:length(scafs_in_region) ){
 
       # input
@@ -464,7 +466,8 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
         input$ps[ input$scaf == scafs_in_region[s]][1]
 
       # nothing special if it's on the + strand
-      if( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s] ] == '+' ){
+      if( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s] ] == '+' |
+          is.na( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s]]) ){
         g$start[ g$chrom == scafs_in_region[s] ] <-
           g$start[ g$chrom == scafs_in_region[s] ] + offset
 
@@ -522,3 +525,4 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
   return( fr )
 
 }
+

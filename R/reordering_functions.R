@@ -298,3 +298,70 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
   return( input )
 
 }
+
+
+
+#' Generate reordering information for a VCF file
+#'
+#' This function will produce two files that you can use in conjunction with
+#' PLINK to reorder your VCF according to chromosome assignments.
+#'
+#' @param vcf The name of the VCF file that you want to reorder.
+#' @param scaffold_lengths Draft genome scaffold lengths.
+#' @param assignments Name of the file containing the reordering information.
+#' @param species The abbreviation for the species assembly you ordered to.
+#' @param out Prefix of the files to write to.
+#'
+#' @return Nothing. Produces two files: out.exclude.txt and out.reordering.txt for
+#'     use with PLINK and your original VCF file.
+#' @export
+#'
+#' @examples
+generate_reordering_for_vcf <- function( vcf, scaffold_lengths, assignments,
+                                         species, out ){
+
+  # Prepare output filenames
+  for_exclude <- paste0( out, '.exclude.txt' )
+  for_reorder <- paste0( out, '.reordering.txt' )
+
+  # Read in only the first three columns.
+  x <- read_table2( file = vcf, comment = "#", col_names = F,
+                    col_types = cols_only( X1 = 'c', X2 = 'i', X3 = 'c'))
+
+  # Make consistent with helper functions
+  colnames(x) <- c('scaf','ps','stat')
+  x$chr <- 1
+
+  # need bp_cum for each chromosome, not as a whole. Assign to chromosomes.
+  y <- reorder_scaffolds( x, assignments = assignments, species = species ) %>%
+    select( scaf, ps, stat, chr )
+
+  # Get SNPs excluded after reordering
+  setdiff( x$stat, y$stat ) -> excluded
+  write.table( x= excluded, file = for_exclude, quote = F, col.names = F,
+               row.names = F )
+  rm(excluded)
+  rm(x)
+
+  # Get cumulative positions per chr
+
+  chrs <- unique( y$chr )
+
+  for( i in chrs ){
+
+    z <- y %>% filter( chr == i ) %>%
+      get_cumulative_positions( ., scaffold_lengths = scaffold_lengths ) %>%
+      select( stat, chr, bp_cum )
+
+    write_delim( x = z, path = for_reorder, delim = " ", append = T,
+                 col_names = F )
+
+    message("Finished ",i," \n")
+  }
+
+  message("Finished. Apply reordering information to your VCF using the",
+          "following\nPLINK command:\n\nplink --vcf ", vcf, "--exclude ",
+          for_exclude, " --allow-extra-chr --allow-no-sex --make-bed ",
+          "--update-chr ", for_reorder, " 2 1 --update-map ", for_reorder,
+          " 3 1 \n\nYou can then recode as VCF using PLINK, if needed.")
+}
