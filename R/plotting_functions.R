@@ -461,43 +461,47 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
       # scaf_strands --> d.f(scaf, strand)
       # g --> tibble(chrom, start, end, strand, id ) [ chrom == scaffold ]
 
-      # get the offset
-      offset <- input$bp_cum[ input$scaf == scafs_in_region[s] ][1] -
-        input$ps[ input$scaf == scafs_in_region[s]][1]
+      # If there are gene models on the scaffold, then proceed
+      if( length( g$start[ g$chrom == scafs_in_region[s]] ) > 0 ){
 
-      # nothing special if it's on the + strand
-      if( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s] ] == '+' |
-          is.na( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s]]) ){
-        g$start[ g$chrom == scafs_in_region[s] ] <-
-          g$start[ g$chrom == scafs_in_region[s] ] + offset
+        # get the offset
+        offset <- input$bp_cum[ input$scaf == scafs_in_region[s] ][1] -
+          input$ps[ input$scaf == scafs_in_region[s]][1]
 
-        g$end[ g$chrom == scafs_in_region[s] ] <-
-          g$end[ g$chrom == scafs_in_region[s] ] + offset
+        # nothing special if it's on the + strand
+        if( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s] ] == '+' |
+            is.na( scaf_strands$strand[ scaf_strands$scaf == scafs_in_region[s]]) ){
+          g$start[ g$chrom == scafs_in_region[s] ] <-
+            g$start[ g$chrom == scafs_in_region[s] ] + offset
 
-      } else {
+          g$end[ g$chrom == scafs_in_region[s] ] <-
+            g$end[ g$chrom == scafs_in_region[s] ] + offset
 
-        # on the - strand, so (length - ps).
-        g$start[ g$chrom == scafs_in_region[s] ] <-
-          scaf_lens$length[ scaf_lens$scaf == scafs_in_region[s] ] -
-          g$start[ g$chrom == scafs_in_region[s] ] + offset
+        } else {
 
-        g$end[ g$chrom == scafs_in_region[s] ] <-
-          scaf_lens$length[ scaf_lens$scaf == scafs_in_region[s] ] -
-          g$end[ g$chrom == scafs_in_region[s] ] + offset
+          # on the - strand, so (length - ps).
+          g$start[ g$chrom == scafs_in_region[s] ] <-
+            scaf_lens$length[ scaf_lens$scaf == scafs_in_region[s] ] -
+            g$start[ g$chrom == scafs_in_region[s] ] + offset
 
-        # switch strand for genes on those scaffolds that map in the
-        # - orientation relative to chromosomes
-        ori_strands <- g$strand[ g$chrom == scafs_in_region[s] ]
-        ori_strands <- replace( ori_strands, ori_strands == '+', 'P')
-        ori_strands <- replace( ori_strands, ori_strands == '-', 'M')
-        ori_strands <- replace( ori_strands, ori_strands == 'P', '-')
-        ori_strands <- replace( ori_strands, ori_strands == 'M', '+')
+          g$end[ g$chrom == scafs_in_region[s] ] <-
+            scaf_lens$length[ scaf_lens$scaf == scafs_in_region[s] ] -
+            g$end[ g$chrom == scafs_in_region[s] ] + offset
 
-        # replace strand
-        g$strand[ g$chrom == scafs_in_region[s] ] <- ori_strands
+          # switch strand for genes on those scaffolds that map in the
+          # - orientation relative to chromosomes
+          ori_strands <- g$strand[ g$chrom == scafs_in_region[s] ]
+          ori_strands <- replace( ori_strands, ori_strands == '+', 'P')
+          ori_strands <- replace( ori_strands, ori_strands == '-', 'M')
+          ori_strands <- replace( ori_strands, ori_strands == 'P', '-')
+          ori_strands <- replace( ori_strands, ori_strands == 'M', '+')
 
+          # replace strand
+          g$strand[ g$chrom == scafs_in_region[s] ] <- ori_strands
+
+        }
       }
-    }
+    } # Then there are no models on this scaffold
 
     # Keep only models within the plotting region
     g <- dplyr::filter( g, start >= min( input$bp_cum ) &
