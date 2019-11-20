@@ -86,7 +86,7 @@ reorder_scaffolds <- function( input , assignments, species ){
 
   # Strip platanus scaffold sizes if they're there
   reordered <- dplyr::mutate( reordered,
-                  scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") ) %>%
+                              scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") ) %>%
     dplyr::mutate( orichr = paste0(chr,":",chrMin,"-",chrMax,"(",strand,")"))
 
   # cat("scaffold names are like so:",as.character(reordered[1,1]),"\n")
@@ -98,7 +98,7 @@ reorder_scaffolds <- function( input , assignments, species ){
     # will plot in numerically increasing chromosome order.
     if( grepl( "chr", reordered[1,5] ) ){
       reordered$chr <- as.numeric( unlist( purrr::map( reordered$chr,
-                                          stringr::str_replace, "chr", "")))
+                                                       stringr::str_replace, "chr", "")))
     }
   }
 
@@ -112,20 +112,22 @@ reorder_scaffolds <- function( input , assignments, species ){
   for_rev <- as.character( reordered$scaf[ reordered$strand == "-" &
                                              ! is.na( reordered$strand )] )
 
-  for( rscaf in 1:length(for_rev) ){
+  if( length( for_rev ) >= 1 ){
+    for( rscaf in 1:length(for_rev) ){
 
-    # Get the length of the scaffold that needs to be reversed, get the
-    # positions
-    scaf_len <- reordered$scafLen[ reordered$scaf == for_rev[rscaf] ]
-    pos1 <- input$ps[ input$scaf == for_rev[rscaf] ]
+      # Get the length of the scaffold that needs to be reversed, get the
+      # positions
+      scaf_len <- reordered$scafLen[ reordered$scaf == for_rev[rscaf] ]
+      pos1 <- input$ps[ input$scaf == for_rev[rscaf] ]
 
-    # The new position is length - pos1. Check that there are sites on that
-    # scaffold first.
-    if( length( pos1 ) > 0 ){
-      pos2 <- scaf_len - pos1
-      input$ps[ input$scaf == for_rev[rscaf] ] <- pos2
+      # The new position is length - pos1. Check that there are sites on that
+      # scaffold first.
+      if( length( pos1 ) > 0 ){
+        pos2 <- scaf_len - pos1
+        input$ps[ input$scaf == for_rev[rscaf] ] <- pos2
+      }
+
     }
-
   }
 
 
@@ -194,7 +196,7 @@ reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
   lens <- readr::read_table2( scaffold_lengths, col_names = F )
   colnames( lens ) <- c( 'scaf', 'length' )
   lens <- dplyr::mutate( lens,
-                  scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", ""))
+                         scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", ""))
 
   lens <- lens[ order( lens$length, decreasing = T ) ,]
 
@@ -268,11 +270,11 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
   tot_lens <- readr::read_table2( scaffold_lengths, col_names = F )
   colnames( tot_lens ) <- c( 'scaf', 'length' )
   tot_lens <- dplyr::mutate( tot_lens,
-              scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
+                             scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
 
   # Get order of scaffolds in the input file
   scaf_order <- tibble::tibble( scaf = rle( input$scaf )$values ,
-                        num = as.numeric( seq(1:length( unique( input$scaf )))))
+                                num = as.numeric( seq(1:length( unique( input$scaf )))))
 
   # For keeping order in input
   input$scaf_num <- scaf_order$num[ match( input$scaf, scaf_order$scaf ) ]
