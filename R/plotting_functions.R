@@ -87,7 +87,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
 
   # Get cumulative positions ---------------------------------------------------
   input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
-                                     buffer = 100000, after = 'chromosomes' )
+                                     buffer = 500000, after = 'chromosomes' )
 
   # Plotting -------------------------------------------------------------------
 
@@ -345,7 +345,8 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
   } else if( is.na( ymin ) | is.na( ymax ) | is.na( scaffold_lengths ) ){
     stop("ERROR: You must specify input, ymin, ymax, and scaffold_lengths.\n")
   } else if( ! is.na( gff ) ){
-    if( is.na( feature ) & ( grepl( ".gff", gff ) | grepl( ".gff.gz$", gff ) ) ){
+    if( is.na( feature ) & ( grepl( ".gff", gff ) | grepl( ".gff.gz", gff ) |
+                             grepl( ".gff3", gff) | grepl( ".gff3.gz", gff)) ){
       stop("ERROR: You must specify a feature type when plotting GFF features.\n")
     } else if( ! file.exists( gff ) ){
       stop("ERROR: GFF file doesn't exist.\n")
@@ -404,7 +405,8 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
       }
 
       # otherwise, should be GFF
-    } else if( grepl( ".gff$", gff ) |  grepl( ".gff.gz$", gff ) ){
+    } else if( grepl( ".gff$", gff ) |  grepl( ".gff.gz$", gff ) |
+               grepl( ".gff3$", gff ) | grepl( ".gff3.gz$", gff )){
 
       gff_colnames <- c('chrom','source','type','start','end',
                         'score','strand','phase','attributes')

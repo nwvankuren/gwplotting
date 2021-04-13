@@ -48,12 +48,12 @@
 reorder_scaffolds <- function( input , assignments, species ){
 
   # Currently handles:
-  # pxut, bmor = chr1
+  # pxut, bmor, ppol = chr1
   # mcin = 1
   # hmel = Hmel201003o
   # herd = Herato2001
 
-  chr_species <- c('pxut','bmor','mcin')
+  chr_species <- c('pxut','bmor','mcin','ppol')
   ok_species <- c('hmel','herd',chr_species)
 
   if( ! species %in% ok_species ){
