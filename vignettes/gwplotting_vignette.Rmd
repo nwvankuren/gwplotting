@@ -33,6 +33,7 @@ The `gwplotting` package helps simplify plotting of common statistics from genom
 2. Reordering or binning functions
     * reorder_scaffolds
     * reorder_by_scaf_len
+    * reorder_by_chromosome
     * get_cumulative_positions
     * calculate_ld_decay
 3. Plotting functions
@@ -69,7 +70,7 @@ You can generate this file using `samtools faidx` and `cut` the first two column
 
 It is usually useful to try and assign your draft genome scaffolds to a chromosome-level genome assembly from a closely-related species. This mapping information can then be used with certain functions to reorder your results according to the chromosome-level assembly. There are a variety of tools that will do this, but I have mainly used two methods:
 
-* [RaGOO](https://github.com/malonge/RaGOO), which is based on DNA sequence similarity and [minimap2](https://github.com/lh3/minimap2) alignments. This works well up to ~5 - 10% divergence between draft and reference genomes. I then convert RaGOO output to a common format using the custom perl script [ConvertRagooToMapping.pl](https://github.com/nwvankuren/scripts/genome-reordering/ConvertRagooToMapping.pl)
+* [RaGOO](https://github.com/malonge/RaGOO), or its update RagTag, which is based on DNA sequence similarity and [minimap2](https://github.com/lh3/minimap2) alignments. This works well up to ~5 - 10% divergence between draft and reference genomes. I then convert RaGOO output to a common format using the custom perl script [ConvertRagooToMapping.pl](https://github.com/nwvankuren/scripts/genome-reordering/ConvertRagooToMapping.pl) You can also use the native RagTag AGP output.
 * [OrderScaffoldsByBlatProteins.pl](https://github.com/nwvankuren/scripts/genome-reordering/OrderScaffoldsByBlatProteins.pl), which is based on best protein alignments from the reference genome to the draft genome. 
 
 However, `gwplotting` functions that utilize mapping information (e.g. `reorder_scaffolds()`) really only require the mapping file to contain four columns with these names: 

@@ -39,7 +39,7 @@
 #' b <- load_gemma_gwas( a1, pval = 'p_wald' )
 #' b <- reorder_scaffolds( input = b, assignments = a2, species = 'pxut' )
 #' b
-reorder_scaffolds <- function( input, agp, species ){
+reorder_scaffolds <- function( input, assignments, species ){
 
   # Currently handles:
   # pxut, bmor, ppol, papAlpM, papAlpN = chr1
@@ -58,7 +58,7 @@ reorder_scaffolds <- function( input, agp, species ){
   }
 
   # Get reordering information, following standard AGP format.
-  reordered <- readr::read_table( agp , comment = "#",
+  reordered <- readr::read_table( assignments , comment = "#",
                                   colnames = c('chr','start','end',
                                                'part_number', 'scaf',
                                                'scaf_start','scaf_end',
@@ -67,9 +67,9 @@ reorder_scaffolds <- function( input, agp, species ){
     mutate( chr = stringr::str_remove(chr, "_RagTag") )
 
   # Handle new version of output
-  #if( 'chrMedian' %in% colnames(reordered) ){
-  #  colnames(reordered)[ colnames( reordered ) == "chrMedian" ] <- 'median_pos'
-  #}
+  if( 'chrMedian' %in% colnames(reordered) ){
+    colnames(reordered)[ colnames( reordered ) == "chrMedian" ] <- 'median_pos'
+  }
 
   # Strip platanus scaffold sizes if they're there
   reordered <- dplyr::mutate( reordered,
@@ -218,8 +218,6 @@ reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
 #'
 #' @return A tibble
 #' @export
-#'
-#' @examples
 reorder_by_chromosome <- function( input, exclude = T ){
 
   # this will be unhappy because it doesn't want to convert the unmapped
@@ -350,8 +348,6 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
 #' @return Nothing. Produces two files: out.exclude.txt and out.reordering.txt for
 #'     use with PLINK and your original VCF file.
 #' @export
-#'
-#' @examples
 generate_reordering_for_vcf <- function( vcf, scaffold_lengths, assignments,
                                          species, out ){
 
