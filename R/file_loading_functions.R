@@ -25,9 +25,14 @@ load_gemma_gwas <- function( file, pval = 'p_wald' ){
 
   if( pval %in% pp ){
 
-    tf <- readr::read_table2( file, col_names = T )
-    tf <- dplyr::select( tf, chr, ps, pval )
+    # Read in, strip RagTag ids if present
+    tf <- readr::read_table( file, col_names = T ) %>%
+      mutate( chr = stringr::str_remove(chr, '_RagTag'))
+
+    tf <- dplyr::select( tf, chr, ps, all_of(pval) )
     colnames( tf ) <- c( 'scaf', 'ps', 'stat' )
+
+    # Old assemblies contain additional header information that we can strip
     tf <- dplyr::mutate( tf, scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
 
     # Add a false chr column with a number for each chromosome
@@ -84,7 +89,7 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
   }
 
   # Read in table
-  tf <- readr::read_table2( file, col_names = T )
+  tf <- readr::read_table( file, col_names = T )
   tf <- dplyr::mutate( tf, chr = stringr::str_replace( CHROM, "[|]size[:digit:]*$", "") )
 
   if( 'BIN_START' %in% colnames( tf ) ){
@@ -149,7 +154,7 @@ load_vcftools_stats <- function( file, stat = 'mean_fst', min_sites = 0,
 #' b
 load_plink_gwas <- function( file ){
 
-  tf <- readr::read_table2( file, col_names = T )
+  tf <- readr::read_table( file, col_names = T )
   tf <- dplyr::mutate( tf, CHR = stringr::str_replace( CHR, "[|]size[:digit:]*$", "") )
 
   if( colnames( tf )[3] == "UNADJ" ){ # It has been adjusted
@@ -261,7 +266,8 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
 
   if( keep_ids ){ keep <- c( keep, 'snpA' ) }
 
-  tf <- readr::read_table2( file, col_names = T ) %>% select( -X9 )
+  tf <- readr::read_table( file, col_names = T ) %>%
+    select( -X9 )
 
   cnames <- c('scaf','ps','snpA','scaf2','ps2','snpB','r2','dp')
   colnames(tf) <- cnames[ 1:ncol( tf ) ]
@@ -286,6 +292,7 @@ load_plink_ld <- function( file, max_dist = 50000, keep_ids = FALSE,
   return( tf )
 
 }
+
 #' Load a results file from Simon Martin's popgenWindows.py script.
 #'
 #' This function was developed strictly following his GitHub description of the

@@ -66,6 +66,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
     input$stat <- -log10(input$stat)
 
     mxs <- ceiling(max(input$stat, na.rm = T ) / 5) * 5
+    if( is.infinite( mxs) ){ mxs <- 100; message("WARNING: Infinite maximimum value.")}
 
     scaley <- list(ggplot2::coord_cartesian( ylim = c( 1.1, mxs ) ),
                    ggplot2::scale_y_continuous( expand = c( 0.05, 0.05 ),
@@ -80,6 +81,8 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
     mns <- min( input[, plotting_column ], na.rm = T )
     mxs <- max( input[, plotting_column ], na.rm = T )
 
+    if( is.infinite(mxs) ){ mxs <- 100; message("WARNING: Infinite maximimum value.")}
+
     scaley <- ggplot2::scale_y_continuous( expand = c( 0.05, 0.05 ),
                                            limits = c( mns - 0.1*mns, mxs + 0.1*mxs) )
 
@@ -92,8 +95,9 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
   # Plotting -------------------------------------------------------------------
 
   # Find tickmarks for x-axis
-  axisdf <- input %>% dplyr::group_by( chr ) %>%
-    dplyr::summarize( center = ( max(bp_cum) + min(bp_cum) ) / 2 )
+  axisdf <- input %>% dplyr::group_by( scaf ) %>%
+    dplyr::summarize( center = ( max(bp_cum) + min(bp_cum) ) / 2 ) %>%
+    mutate( scaf = str_remove(scaf, 'chr'))
 
   num_chr <- nrow( axisdf )
 
@@ -102,7 +106,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
     labs <- NULL
     name <- 'Scaffolds'
   } else {
-    labs <- axisdf$chr
+    labs <- axisdf$scaf
     name <- 'Chromosome'
   }
 
@@ -111,7 +115,7 @@ plot_genomewide_data <- function( input, type = 'gwas', scaffold_lengths,
                                ggplot2::aes_string( x = "bp_cum" , y = plotting_column)) +
 
     # Show all points
-    ggplot2::geom_point( ggplot2::aes( color = factor( input$chr, levels = unique( input$chr )) ),
+    ggplot2::geom_point( ggplot2::aes( color = factor( scaf, levels = unique( scaf )) ),
                          alpha = 0.75 , size = 1 ) +
     ggplot2::scale_color_manual( values = rep(c(col1, col2), ceiling( num_chr/2 ) ,
                                               length = num_chr )) +
@@ -212,16 +216,16 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1,
     input <- dplyr::filter( input, chr == chromosome )
 
     # Handle from and to when bp_cum is not present
-    if( ! "bp_cum" %in% colnames( input ) ){
+    if( "bp_cum" %in% colnames( input ) ){
 
       # If there's only one scaffold for this chromosome, obviously
       # don't need to shift positions
       if( length( unique( input$scaf ) ) == 1 ){
         input <- mutate( input, bp_cum = ps )
-      } else {
-        input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
-                                           buffer = 0, after = 'scaffolds')
       }
+    } else {
+      input <- get_cumulative_positions( input, scaffold_lengths = scaffold_lengths,
+                                         buffer = 0, after = 'scaffolds')
     }
 
     # If you want a subregion,
@@ -239,11 +243,21 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1,
     }
 
     input$stat <- -log10(input$stat)
+
+    # Check for ridiculously high values
+    if( max(input$stat) > 100 ){
+      input$stat[ input$stat > 100] <- 100
+      message("WARNING: At least one stat value is > 100.")
+    }
+
+    # Set y limits
     ylimits <- c( 0, ceiling(max(input$stat, na.rm = T ) / 5) * 5 )
 
   } else {
     mns <- min( input[,  plotting_column ], na.rm = T )
     mxs <- max( input[, plotting_column ], na.rm = T )
+
+    if( is.infinite(mxs) ){ mxs <- 100; message("WARNING: Max stat is infinite.") }
     ylimits <- c( mns - 0.1 * mns, mxs + 0.1 * mxs )
   }
 
@@ -283,7 +297,8 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1,
 
 }
 
-#' Add geom_rect() objects to a ggplot.
+#' Create a tibble containing information for plotting gene models using ggplot
+#' and geom_rect().
 #'
 #'This function will calculate the coordinates of scaffold spans or gene models
 #'for addition to a ggplot. It will use scaffold spans encoded in the input
@@ -291,17 +306,24 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1,
 #'specified.
 #'
 #'The input must only contain information from the region that you want to plot.
+#'The reason for this limitation is that you may want to plot gene models from
+#'multiple scaffolds and these will need to be reordered and reoriented based
+#'on the scaffold-to-chromosome mapping. You can simply filter in the function
+#'call instead of creating another object, though.
 #'
 #' @param input Tibble containing scaf, ps, stat, chr, and bp_cum ONLY for the
-#'     region you want to plot.
+#'     region you want to plot. That is, your data has already been reordered.
 #' @param ymin Minimum y positions for geom_rects.
 #' @param ymax Maximum y positions for geom_rects.
 #' @param scaffold_lengths Path to a two-column tab-delimited file containing
 #'     scaffold names and their lengths.
-#' @param gff Path to a GFF or BED format file, if plotting gene models.
+#' @param gff Path to a GFF or BED format file, if plotting gene models. If left
+#' NA, then elements in the output correspond to constituent scaffolds in the
+#' plotted region.
 #' @param feature GFF feature type to plot. Usually genes. Not extensively
 #'     tested.
-#' @param mapping Path to reordering file.
+#' @param mapping Path to AGP file, or "chr" if the assembly is already at
+#' chromosome level and annotated.
 #'
 #' @return A four-column tibble containing an ID, xmins, xmaxs, ymins, and ymaxs
 #'     for use in a geom_rect() call.
@@ -337,24 +359,28 @@ plot_region_data <- function( input, chromosome = NA, scaffold = NA, from = 1,
 #'
 #' d
 add_annotations <- function( input, ymin, ymax, scaffold_lengths,
-                             gff = NA, feature = NA, mapping = NA){
+                             gff = NA, feature = "gene", mapping = "chr"){
 
   # Check to see if all params specified
   if( ! 'bp_cum' %in% colnames(input) ){
     stop("ERROR: You must first calculate cumulative positions for your input.\n")
   } else if( is.na( ymin ) | is.na( ymax ) | is.na( scaffold_lengths ) ){
     stop("ERROR: You must specify input, ymin, ymax, and scaffold_lengths.\n")
-  } else if( ! is.na( gff ) ){
-    if( is.na( feature ) & ( grepl( ".gff", gff ) | grepl( ".gff.gz", gff ) |
-                             grepl( ".gff3", gff) | grepl( ".gff3.gz", gff)) ){
-      stop("ERROR: You must specify a feature type when plotting GFF features.\n")
-    } else if( ! file.exists( gff ) ){
-      stop("ERROR: GFF file doesn't exist.\n")
+  } else if( ! is.na( gff ) & file.exists(gff)){
+    if(  grepl( "gff", gff )  ){
+      message(paste0("Using GFF format file ",gff," and ",feature," features.\n"))
+    } else if( grepl("bed",gff) ){
+      message(paste0("Using BED file ",gff," and all intervals.\n"))
     }
   }
 
   # What scaffolds are in this region
   scafs_in_region <- unique( input$scaf )
+
+  # If we're chromosome level we want to use chromosome coordinates not bp_cum
+  if( mapping == "chr" ){
+    input$bp_cum = input$ps
+  }
 
   # Handle scaffolds first. Doesn't matter if they're reordered because they're
   # just based on length.
@@ -366,8 +392,10 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
 
     # loop over scaffolds, get min/max bp_cum positions for each scaffold
     for( i in 1:length( scafs_in_region )){
-      xmins[i] <- head( dplyr::filter( input, scaf == scafs_in_region[i] & !is.na( bp_cum ) ), n = 1)$bp_cum;
-      xmaxs[i] <- tail( dplyr::filter( input, scaf == scafs_in_region[i] & !is.na( bp_cum ) ), n = 1)$bp_cum;
+      xmins[i] <- head( dplyr::filter( input, scaf == scafs_in_region[i] &
+                                         !is.na( bp_cum ) ), n = 1)$bp_cum;
+      xmaxs[i] <- tail( dplyr::filter( input, scaf == scafs_in_region[i] &
+                                         !is.na( bp_cum ) ), n = 1)$bp_cum;
     }
 
     ymins <- rep( ymin, length( xmins ) )
@@ -380,11 +408,12 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
     # has already been reordered and we need to take into account strand
     # information when determining x values.
 
-    # if it's a bed file, figure out what kind and keep necessary info
-    if( grepl( ".bed$", gff ) | grepl( ".bed.gz$", gff ) ){
+    # if it's a bed file, figure out what kind and keep necessary info. BED can
+    # contain many different field combos beyond the chrom, start, end. See
+    # BED12, BED6, etc. If its not standard then this likely will fail.
+    if( grepl( "bed", gff ) ){
 
       g <- readr::read_tsv( gff, comment = "#", col_names = F )
-
 
       if( ncol( g ) >= 6 ){
         # bed12
@@ -405,8 +434,7 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
       }
 
       # otherwise, should be GFF
-    } else if( grepl( ".gff$", gff ) |  grepl( ".gff.gz$", gff ) |
-               grepl( ".gff3$", gff ) | grepl( ".gff3.gz$", gff )){
+    } else if( grepl("gff", gff)){
 
       gff_colnames <- c('chrom','source','type','start','end',
                         'score','strand','phase','attributes')
@@ -414,7 +442,9 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
       # open, filter,
       g <- readr::read_tsv( file = gff, comment = "#",
                             col_names = gff_colnames  ) %>%
-        dplyr::filter( type == feature & chrom %in% scafs_in_region & ! grepl("other",source) ) %>%
+        dplyr::mutate( chrom = stringr::str_remove(chrom,'_RagTag') ) %>%
+        dplyr::filter( type == feature & chrom %in% scafs_in_region &
+                         ! grepl("other",source) ) %>%
         dplyr::select( chrom, start, end, strand, attributes ) %>%
         dplyr::mutate( id = stringr::str_replace( attributes, "[;].*$", "") ) %>%
         dplyr::mutate( id = stringr::str_replace( id, "ID=","")) %>%
@@ -427,7 +457,8 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
 
     # Hopefully there are some features in here
     if( nrow(g) == 0 ){
-      stop("ERROR: No features in this region\n")
+      stop("ERROR: No features in this region. Make sure your feature
+           specification is in your GFF file.\n")
     } else {
       message("Plotting ", nrow(g)," features")
     }
@@ -437,19 +468,20 @@ add_annotations <- function( input, ymin, ymax, scaffold_lengths,
     # g = chrom, start, end, strand, id
 
     # Get scaffold --> chromosome orientation
-    if( is.na( mapping ) ){
-      scaf_strands <- cbind( scafs_in_region, rep('+', length(scafs_in_region)))
+    if( mapping == "chr" ){
+      scaf_strands <- as.data.frame(cbind( scafs_in_region, rep('+', length(scafs_in_region))))
       colnames( scaf_strands ) <- c('scaf','strand')
+      print(scaf_strands)
     } else {
-      scaf_strands <- readr::read_table2( mapping , col_names = T  )
+      scaf_strands <- readr::read_table( mapping , col_names = T  )
       colnames(scaf_strands)[1] <- 'scaf'
 
       scaf_strands <- dplyr::select( scaf_strands, scaf, strand ) %>%
         dplyr::filter( scaf %in% scafs_in_region )
 
       #scaf_lens is not ordered
-      scaf_lens <- readr::read_table2( scaffold_lengths,
-                                       col_names = c('scaf', 'length')) %>%
+      scaf_lens <- readr::read_table( scaffold_lengths,
+                                      col_names = c('scaf', 'length')) %>%
         dplyr::filter( scaf %in% scafs_in_region )
 
     }

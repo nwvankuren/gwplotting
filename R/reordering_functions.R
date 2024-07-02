@@ -2,21 +2,15 @@
 #'
 #' This function will reorder the results of a genome-wide statistical
 #' analysis based on the contents of a file that assigns each scaffold to a
-#' reference genome assembly. The assignments can be generated using, e.g.
-#' OrderScaffoldsByBlatingProteins.pl, but must have the following columns: \cr\cr
-#' scaf, scafLen, chr, strand, median_pos \cr\cr
-#' where scaf is scaffold name, scafLen is the scaffold length, chr is the
-#' chromosome assignment, strand is the direction of the scaffold relative to
-#' the chromosome, and median pos is the position of the scaffold along the
-#' chromosome. This last bit is used to relatively order the scaffolds and must
-#' be increasing along the chromosome length. \cr\cr
+#' reference genome assembly. The ordering information should be supplied as
+#' an AGP format file, typically output by RagTag. \cr\cr
 #' The main difficulty is handling the variety of different species' chromosome
-#' level assemblies. Some, like \emph{Melitaea cinxia} and
-#' \emph{Papilio xuthus} follow the convention of "chr1", etc. Others, however,
-#' like the Heliconius genomes, haven't specified complete chromosomes and have
-#' a unique naming system, typically e.g. Hmel201003o. These need to be handled
-#' differently. I can only guarantee that reordering information from the
-#' following genomes can currently be handled:\cr\cr
+#' level assemblies (i.e. the assemblies that your draft is assigned to). Some,
+#' like \emph{Melitaea cinxia} and \emph{Papilio xuthus} follow the convention
+#' of "chr1", etc. Others, however, like the Heliconius genomes, haven't
+#' specified complete chromosomes and have a unique naming system, typically
+#' e.g. Hmel201003o. These need to be handled differently. I can only guarantee
+#' that reordering information from the following genomes can currently be handled:\cr\cr
 #' \emph{Heliconius melpomene} v2.5 (hmel)\cr
 #' \emph{H. erato demophoon} v1.0 (herd)\cr
 #' \emph{Bombyx mori} chromosome (bmor)\cr
@@ -27,7 +21,7 @@
 #'
 #' @param input A tibble containing scaffold, ps,
 #'     stat, and chr as the first three columns.
-#' @param assignments Name of the file containing the reordering information.
+#' @param agp Name of the file containing the reordering information.
 #' @param species The abbreviation for the species assembly you ordered to.
 #'
 #' @return Returns the input tibble with chr colun detailing which
@@ -39,71 +33,61 @@
 #' a1 <- system.file("extdata", "test.gemma_gwas.txt.gz",
 #'                   package = "gwplotting")
 #'
-#' a2 <- system.file("extdata", "test.reordering.txt.gz",
+#' a2 <- system.file("extdata", "test.reordering.agp.gz",
 #'                   package = "gwplotting")
 #'
 #' b <- load_gemma_gwas( a1, pval = 'p_wald' )
 #' b <- reorder_scaffolds( input = b, assignments = a2, species = 'pxut' )
 #' b
-reorder_scaffolds <- function( input , assignments, species ){
+reorder_scaffolds <- function( input, agp, species ){
 
   # Currently handles:
-  # pxut, bmor, ppol = chr1
+  # pxut, bmor, ppol, papAlpM, papAlpN = chr1
   # mcin = 1
   # hmel = Hmel201003o
   # herd = Herato2001
+  # papLowM, papRumN etc. = PlowM0000, PrumN0000, etc.
 
-  chr_species <- c('pxut','bmor','mcin','ppol')
-  ok_species <- c('hmel','herd',chr_species)
+  chr_species <- c('pxut','bmor','mcin','ppol','papAlpM','papAlpN')
+  ok_species <- c('hmel','herd',chr_species, 'papLowM','papLowN',
+                  'papMemM','papMemN','papRumM','papRumN','papNep')
 
   if( ! species %in% ok_species ){
-    cat(paste0("I can't yet handle your specified species ",species))
+    cat(paste0("Can't yet handle specified species ",species))
     stop(paste0("The only acceptable species are: ",paste(ok_species,sep=",")))
   }
 
-  reordered <- readr::read_table2( assignments , col_names = T  )
-
-  # OLD VERSION of OrderScaffoldsByBlatProteins.pl and CURRENT (4-4-19) version
-  # of ConvertRagooToMapping.pl
-  #`#scaf`     scafLen scafMin scafMax chr    chrMin  chrMax strand num_proteins median_pos
-  #<chr>         <int>   <int>   <int> <chr>   <int>   <int> <chr>         <int>
-  #1 scaffold49  1564542   53542  901564 chr7  6339484 6621196 +                19
-  #2 scaffold460  191485   28352  184843 chr2  3270890 3397095 +                 8
-  #3 scaffold580  104787   14511   68652 chr3  8062310 8083970 +                 3
-
-  # 4-3-2019 version of OrderScaffoldsByBlatProteins.pl
-  # `#scaf`         scafLen	 scafMin scafMax	scafMid	   chr	chrMin	chrMax	 chrMedian strand	num_proteins
-  # NW_020662793.1	10603640 66045	 10488078	5111737.75  4	 7641530	16690293 12731507	 NA	    312
-  # NW_020662794.1	 3247479 49402    3244253	1903466.75 24	 5034737   9231567  5843544	 NA	     68
-  # NW_020662795.1	 1923411  1723	  1923242	 827769.5	  2 11870059	15057231	3105893	  -	    111
-
-  colnames( reordered )[1] <- 'scaf'
+  # Get reordering information, following standard AGP format.
+  reordered <- readr::read_table( agp , comment = "#",
+                                  colnames = c('chr','start','end',
+                                               'part_number', 'scaf',
+                                               'scaf_start','scaf_end',
+                                               'strand')) %>%
+    filter( component_id == 'W' ) %>%
+    mutate( chr = stringr::str_remove(chr, "_RagTag") )
 
   # Handle new version of output
-  if( 'chrMedian' %in% colnames(reordered) ){
-    colnames(reordered)[ colnames( reordered ) == "chrMedian" ] <- 'median_pos'
-  }
+  #if( 'chrMedian' %in% colnames(reordered) ){
+  #  colnames(reordered)[ colnames( reordered ) == "chrMedian" ] <- 'median_pos'
+  #}
 
   # Strip platanus scaffold sizes if they're there
   reordered <- dplyr::mutate( reordered,
-                              scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") ) %>%
-    dplyr::mutate( orichr = paste0(chr,":",chrMin,"-",chrMax,"(",strand,")"))
+                              scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
 
-  # cat("scaffold names are like so:",as.character(reordered[1,1]),"\n")
   # Handle the different species -----------------------------------------------
 
   if( species %in% chr_species ){
 
-    # Strip 'chr' from chromosome names, if they're there. This simplifies -
-    # will plot in numerically increasing chromosome order.
-    if( grepl( "chr", reordered[1,5] ) ){
-      reordered$chr <- as.numeric( unlist( purrr::map( reordered$chr,
-                                                       stringr::str_replace, "chr", "")))
-    }
+    # Get rid of unassigned scaffolds and strip 'chr' from chromosome names.
+    # This simplifies it and will plot in numerically increasing chromosome order.
+    reordered <- filter( reordered, !grepl( chr, "chr") ) %>%
+      mutate( chr = as.numeric( unlist( purrr::map( reordered$chr,
+                                                    stringr::str_remove, "chr"))))
   }
 
-  # Order it. This will order Hmel and Herd scaffolds properly
-  reordered <- reordered[ order( reordered$chr, reordered$median_pos ), ]
+  # Order it. This will order most scaffolds properly
+  reordered <- reordered[ order( reordered$chr, reordered$part_number ), ]
 
   # Keep only those SNPs on reordered scaffolds
   input <- dplyr::filter( input, scaf %in% reordered$scaf )
@@ -117,7 +101,7 @@ reorder_scaffolds <- function( input , assignments, species ){
 
       # Get the length of the scaffold that needs to be reversed, get the
       # positions
-      scaf_len <- reordered$scafLen[ reordered$scaf == for_rev[rscaf] ]
+      scaf_len <- reordered$scaf_end[ reordered$scaf == for_rev[rscaf] ]
       pos1 <- input$ps[ input$scaf == for_rev[rscaf] ]
 
       # The new position is length - pos1. Check that there are sites on that
@@ -130,13 +114,12 @@ reorder_scaffolds <- function( input , assignments, species ){
     }
   }
 
-
   # Actually do the reordering - by chrom then by position. Add a new column to
   # input that tells you which reference scaffold / chromosome the scaffolds
   # match
   input$chr <- reordered$chr[ match( input$scaf, reordered$scaf ) ]
-  input$mpos <- reordered$median_pos[ match( input$scaf, reordered$scaf ) ]
-  input$orichr <- reordered$orichr[ match( input$scaf, reordered$scaf ) ]
+  input$mpos <- reordered$part_number[ match( input$scaf, reordered$scaf ) ]
+  input$scaf <- reordered$scaf[ match( input$scaf, reordered$scaf ) ]
 
   # Sanity check
   input <- filter(input, ! is.na( chr ) )
@@ -193,7 +176,7 @@ reorder_scaffolds <- function( input , assignments, species ){
 reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
 
   # Get the scaffolds and lengths
-  lens <- readr::read_table2( scaffold_lengths, col_names = F )
+  lens <- readr::read_table( scaffold_lengths, col_names = F )
   colnames( lens ) <- c( 'scaf', 'length' )
   lens <- dplyr::mutate( lens,
                          scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", ""))
@@ -223,7 +206,56 @@ reorder_by_scaf_len <- function( input, scaffold_lengths, min_length = 0 ){
 
 }
 
-#' Assign cumulative positions to postions split by scaffolds.
+#' Reorder a file by chromosome.
+#'
+#' This function will use chromosome information in the input file to order the
+#' results rather than information from an external AGP, etc. file.
+#'
+#' @param input An input stats file generated using one of the file loading
+#' functions such as load_gemma_gwas
+#' @param exclude Exclude scaffolds that do not start with "chr" (i.e.
+#' unassigned scaffolds)?
+#'
+#' @return A tibble
+#' @export
+#'
+#' @examples
+reorder_by_chromosome <- function( input, exclude = T ){
+
+  # this will be unhappy because it doesn't want to convert the unmapped
+  # scaffold names to numeric. Don't forget Z, W, or M!
+  suppressWarnings(input <- input %>%
+    mutate( tmp_chr = as.numeric(str_remove( scaf, 'chr' ))))
+
+  sex_chrs <- filter( input, scaf %in% c('chrZ','chrW'))
+  chr_input <- filter( input, !is.na(tmp_chr))
+
+  chr_input <- chr_input[ order( chr_input$tmp_chr,
+                                   chr_input$ps), ]
+
+  chr_input <- bind_rows( chr_input, sex_chrs )
+
+  if( !exclude){
+    nonchr_input <- filter( input, is.na(tmp_chr) &
+                              ! scaf %in% c('chrZ','chrW'))
+
+    chr_input <- bind_rows( chr_input, nonchr_input )
+
+  }
+
+  chr_input <- select( chr_input, -tmp_chr )
+
+  # Modify the chromosome ordering column with a number for each chromosome
+  scaf_order <- tibble( scaf = rle( chr_input$scaf )$values ,
+                                num = as.numeric(seq( 1:length(unique( chr_input$scaf )))))
+
+  chr_input$chr <- scaf_order$num[ match( chr_input$scaf, scaf_order$scaf ) ]
+
+  return(chr_input)
+
+}
+
+#' Assign cumulative positions to positions split by scaffolds.
 #'
 #'This function will add a new column to your tibble, bp_cum with the cumulative
 #'sum of positions in the ps column. This makes it so that the stat in each row in the
@@ -267,7 +299,9 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
   # put an order(match()) command in a pipe.
 
   # Get lengths of each scaffold, then get cumulative positions
-  tot_lens <- readr::read_table2( scaffold_lengths, col_names = F )
+  tot_lens <- readr::read_table( scaffold_lengths, col_names = F,
+                                 show_col_types = F ) %>%
+    mutate( X1 = str_remove(X1, '_RagTag'))
   colnames( tot_lens ) <- c( 'scaf', 'length' )
   tot_lens <- dplyr::mutate( tot_lens,
                              scaf = stringr::str_replace( scaf, "[|]size[:digit:]*$", "") )
@@ -300,7 +334,6 @@ get_cumulative_positions <- function( input, scaffold_lengths, buffer = 0,
   return( input )
 
 }
-
 
 
 #' Generate reordering information for a VCF file
