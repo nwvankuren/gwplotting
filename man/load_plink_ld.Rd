@@ -4,8 +4,7 @@
 \alias{load_plink_ld}
 \title{Load a plink LD file}
 \usage{
-load_plink_ld(file, max_dist = 50000, keep_ids = FALSE,
-  stat = c("r2", "dp"))
+load_plink_ld(file, max_dist = 50000, keep_ids = FALSE, stat = c("r2", "dp"))
 }
 \arguments{
 \item{file}{Name of a file containing LD values calculated using}

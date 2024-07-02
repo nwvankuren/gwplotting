@@ -2,10 +2,14 @@
 % Please edit documentation in R/reordering_functions.R
 \name{get_cumulative_positions}
 \alias{get_cumulative_positions}
-\title{Assign cumulative positions to postions split by scaffolds.}
+\title{Assign cumulative positions to positions split by scaffolds.}
 \usage{
-get_cumulative_positions(input, scaffold_lengths, buffer = 0,
-  after = "scaffolds")
+get_cumulative_positions(
+  input,
+  scaffold_lengths,
+  buffer = 0,
+  after = "scaffolds"
+)
 }
 \arguments{
 \item{input}{A tibble with the columns scaf (scaffold), ps

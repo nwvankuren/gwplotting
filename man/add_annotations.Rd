@@ -2,14 +2,22 @@
 % Please edit documentation in R/plotting_functions.R
 \name{add_annotations}
 \alias{add_annotations}
-\title{Add geom_rect() objects to a ggplot.}
+\title{Create a tibble containing information for plotting gene models using ggplot
+and geom_rect().}
 \usage{
-add_annotations(input, ymin, ymax, scaffold_lengths, gff = NA,
-  feature = NA, mapping = NA)
+add_annotations(
+  input,
+  ymin,
+  ymax,
+  scaffold_lengths,
+  gff = NA,
+  feature = "gene",
+  mapping = "chr"
+)
 }
 \arguments{
 \item{input}{Tibble containing scaf, ps, stat, chr, and bp_cum ONLY for the
-region you want to plot.}
+region you want to plot. That is, your data has already been reordered.}
 
 \item{ymin}{Minimum y positions for geom_rects.}
 
@@ -18,12 +26,15 @@ region you want to plot.}
 \item{scaffold_lengths}{Path to a two-column tab-delimited file containing
 scaffold names and their lengths.}
 
-\item{gff}{Path to a GFF or BED format file, if plotting gene models.}
+\item{gff}{Path to a GFF or BED format file, if plotting gene models. If left
+NA, then elements in the output correspond to constituent scaffolds in the
+plotted region.}
 
 \item{feature}{GFF feature type to plot. Usually genes. Not extensively
 tested.}
 
-\item{mapping}{Path to reordering file.}
+\item{mapping}{Path to AGP file, or "chr" if the assembly is already at
+chromosome level and annotated.}
 }
 \value{
 A four-column tibble containing an ID, xmins, xmaxs, ymins, and ymaxs
@@ -37,6 +48,10 @@ specified.
 }
 \details{
 The input must only contain information from the region that you want to plot.
+The reason for this limitation is that you may want to plot gene models from
+multiple scaffolds and these will need to be reordered and reoriented based
+on the scaffold-to-chromosome mapping. You can simply filter in the function
+call instead of creating another object, though.
 }
 \examples{
 a1 <- system.file("extdata", "test.gemma_gwas.txt.gz",

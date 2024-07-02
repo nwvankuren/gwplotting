@@ -2,8 +2,8 @@
 % Please edit documentation in R/gwplotting.R
 \docType{package}
 \name{gwplotting}
-\alias{gwplotting}
 \alias{gwplotting-package}
+\alias{gwplotting}
 \title{gwplotting: A package to simplify plotting genome-wide statistics}
 \description{
 This package contains a set of small functions that perform three main tasks:
@@ -92,3 +92,7 @@ z
 dev.off()
 }
 
+\author{
+\strong{Maintainer}: Nicholas VanKuren \email{nwvankuren@gmail.com}
+
+}

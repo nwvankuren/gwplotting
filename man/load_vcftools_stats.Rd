@@ -4,8 +4,12 @@
 \alias{load_vcftools_stats}
 \title{Load a VCFtools results file.}
 \usage{
-load_vcftools_stats(file, stat = "mean_fst", min_sites = 0,
-  position = "midpoint")
+load_vcftools_stats(
+  file,
+  stat = "mean_fst",
+  min_sites = 0,
+  position = "midpoint"
+)
 }
 \arguments{
 \item{file}{VCFtools results file. Can be gzipped.}

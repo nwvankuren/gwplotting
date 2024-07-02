@@ -4,8 +4,14 @@
 \alias{plot_genomewide_data}
 \title{Plot genome-wide statistics}
 \usage{
-plot_genomewide_data(input, type = "gwas", scaffold_lengths,
-  plotting_column = "stat", col1 = "grey", col2 = "black")
+plot_genomewide_data(
+  input,
+  type = "gwas",
+  scaffold_lengths,
+  plotting_column = "stat",
+  col1 = "grey",
+  col2 = "black"
+)
 }
 \arguments{
 \item{input}{A tibble with four named columns (scaf, ps, stat, and chr)}

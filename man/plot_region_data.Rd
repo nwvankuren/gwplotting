@@ -4,9 +4,18 @@
 \alias{plot_region_data}
 \title{Plot statistics in a particular region}
 \usage{
-plot_region_data(input, chromosome = NA, scaffold = NA, from = 1,
-  to = NA, type = "gwas", color = "black",
-  plotting_column = "stat", scaffold_lengths, include_all_p = FALSE)
+plot_region_data(
+  input,
+  chromosome = NA,
+  scaffold = NA,
+  from = 1,
+  to = NA,
+  type = "gwas",
+  color = "black",
+  plotting_column = "stat",
+  scaffold_lengths,
+  include_all_p = FALSE
+)
 }
 \arguments{
 \item{input}{A tibble with four named columns (scaf, ps, stat, and chr)}
